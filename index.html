@@ -62,15 +62,20 @@
         <!-- Нижняя панель -->
         <div id="bottom-panel">
             <div id="treasure-info" style="display: none;">
-                <h3 id="treasure-name">Название сокровища</h3>
-                <p id="treasure-description">Описание</p>
-                <div class="treasure-distance">
-                    <span id="distance-text">📍 Вычисляем расстояние...</span>
-                </div>
-                <button id="claim-btn" class="btn-primary" disabled>
-                    🔒 Слишком далеко
-                </button>
-            </div>
+    <!-- Картинка сокровища -->
+    <div id="treasure-image-container" style="width: 100%; height: 180px; margin-bottom: 15px; border-radius: 12px; overflow: hidden; display: none;">
+        <img id="treasure-image" src="" alt="Treasure" style="width: 100%; height: 100%; object-fit: cover;">
+    </div>
+    
+    <h3 id="treasure-name">Название сокровища</h3>
+    <p id="treasure-description">Описание</p>
+    <div class="treasure-distance">
+        <span id="distance-text">📍 Вычисляем расстояние...</span>
+    </div>
+    <button id="claim-btn" class="btn-primary" disabled>
+        🔒 Слишком далеко
+    </button>
+</div>
 
             <div id="default-info">
                 <h3>Добро пожаловать в Нижний Новгород!</h3>
