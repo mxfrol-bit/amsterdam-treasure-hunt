@@ -173,7 +173,7 @@ function initMap() {
 	mapboxgl.accessToken = CONFIG.MAPBOX_TOKEN;
 	
 	// Default to Amsterdam center
-	const center = [4.9, 52.37];
+	const center = [43.9360, 56.2965];
 	
 	map = new mapboxgl.Map({
 		container: 'map',
