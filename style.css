@@ -293,6 +293,29 @@ header h1 {
     list-style-position: inside;
 }
 
+/* Фикс для смены ориентации */
+@media (orientation: portrait) {
+    #map {
+        height: 100vh !important;
+    }
+}
+
+@media (orientation: landscape) {
+    #map {
+        height: 100vh !important;
+    }
+}
+
+/* Фикс для мобильных браузеров */
+#map {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+}
+
+html {
+    height: -webkit-fill-available;
+}
+
 #close-modal {
     margin-top: 10px;
 }
