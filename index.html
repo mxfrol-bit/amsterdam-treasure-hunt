@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Охота за сокровищами • Нижний Новгород</title>
     
     <!-- Mapbox -->
@@ -44,15 +44,6 @@
             </div>
         </div>
 
-        <!-- Модальное окно достижений -->
-<div id="achievements-modal" class="modal" style="display: none;">
-    <div class="modal-content" style="max-width: 400px; max-height: 80vh; overflow-y: auto;">
-        <h2 style="color: #667eea; margin-bottom: 20px;">🏆 Достижения</h2>
-        <div id="achievements-list"></div>
-        <button id="close-achievements" class="btn-primary" style="margin-top: 20px;">Закрыть</button>
-    </div>
-</div>
-
         <!-- Шапка -->
         <header>
             <div class="header-content">
@@ -62,12 +53,16 @@
                     <span class="score">🏆 <span id="user-score">0</span></span>
                 </div>
             </div>
-            <button id="invite-btn" style="position: absolute; right: 15px; top: 15px; background: transparent; border: none; color: white; font-size: 24px; cursor: pointer;">
+            
+            <!-- Кнопка достижений -->
+            <button id="achievements-btn" style="position: absolute; left: 15px; top: 15px; background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; padding: 5px;">
+                🏆
+            </button>
+            
+            <!-- Кнопка пригласить -->
+            <button id="invite-btn" style="position: absolute; right: 15px; top: 15px; background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; padding: 5px;">
                 👥
             </button>
-            <button id="achievements-btn" style="position: absolute; left: 15px; top: 15px; background: transparent; border: none; color: white; font-size: 24px; cursor: pointer;">
-    🏆
-</button>
         </header>
 
         <!-- Контейнер карты -->
@@ -76,20 +71,20 @@
         <!-- Нижняя панель -->
         <div id="bottom-panel">
             <div id="treasure-info" style="display: none;">
-    <!-- Картинка сокровища -->
-    <div id="treasure-image-container" style="width: 100%; height: 180px; margin-bottom: 15px; border-radius: 12px; overflow: hidden; display: none;">
-        <img id="treasure-image" src="" alt="Treasure" style="width: 100%; height: 100%; object-fit: cover;">
-    </div>
-    
-    <h3 id="treasure-name">Название сокровища</h3>
-    <p id="treasure-description">Описание</p>
-    <div class="treasure-distance">
-        <span id="distance-text">📍 Вычисляем расстояние...</span>
-    </div>
-    <button id="claim-btn" class="btn-primary" disabled>
-        🔒 Слишком далеко
-    </button>
-</div>
+                <!-- Картинка сокровища -->
+                <div id="treasure-image-container" style="width: 100%; height: 180px; margin-bottom: 15px; border-radius: 12px; overflow: hidden; display: none;">
+                    <img id="treasure-image" src="" alt="Treasure" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                
+                <h3 id="treasure-name">Название сокровища</h3>
+                <p id="treasure-description">Описание</p>
+                <div class="treasure-distance">
+                    <span id="distance-text">📍 Вычисляем расстояние...</span>
+                </div>
+                <button id="claim-btn" class="btn-primary" disabled>
+                    🔒 Слишком далеко
+                </button>
+            </div>
 
             <div id="default-info">
                 <h3>Добро пожаловать в Нижний Новгород!</h3>
@@ -118,6 +113,28 @@
                 <h2>Сокровище найдено!</h2>
                 <p id="success-message">Ты заработал <strong>10 очков</strong>!</p>
                 <button id="close-modal" class="btn-primary">Продолжить охоту</button>
+            </div>
+        </div>
+
+        <!-- Модальное окно достижений -->
+        <div id="achievements-modal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 400px; max-height: 80vh; overflow-y: auto;">
+                <h2 style="color: #667eea; margin-bottom: 15px; font-size: 24px;">🏆 Достижения</h2>
+                
+                <!-- Прогресс бар -->
+                <div style="margin-bottom: 20px; text-align: center;">
+                    <div style="font-size: 14px; color: #888; margin-bottom: 8px;">
+                        Прогресс: <span id="achievements-progress">0/10</span>
+                    </div>
+                    <div style="background: #eee; height: 8px; border-radius: 4px; overflow: hidden;">
+                        <div id="achievements-bar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100%; width: 0%; transition: width 0.5s;"></div>
+                    </div>
+                </div>
+                
+                <!-- Список достижений -->
+                <div id="achievements-list"></div>
+                
+                <button id="close-achievements" class="btn-primary" style="margin-top: 20px;">Закрыть</button>
             </div>
         </div>
     </div>
