@@ -44,9 +44,48 @@
             </div>
         </div>
 
+        <!-- Боковое меню -->
+        <div id="side-menu" class="side-menu">
+            <div class="menu-header">
+                <h2>Меню</h2>
+                <button id="close-menu" class="close-btn">×</button>
+            </div>
+            <div class="menu-content">
+                <div class="menu-item" id="menu-profile">
+                    <span class="menu-icon">👤</span>
+                    <span>Профиль</span>
+                </div>
+                <div class="menu-item" id="menu-achievements">
+                    <span class="menu-icon">🏆</span>
+                    <span>Достижения</span>
+                </div>
+                <div class="menu-item" id="menu-leaderboard">
+                    <span class="menu-icon">📊</span>
+                    <span>Таблица лидеров</span>
+                </div>
+                <div class="menu-item" id="menu-settings">
+                    <span class="menu-icon">⚙️</span>
+                    <span>Настройки</span>
+                </div>
+                <div class="menu-item" id="menu-help">
+                    <span class="menu-icon">❓</span>
+                    <span>Помощь</span>
+                </div>
+            </div>
+            <div class="menu-footer">
+                <p>Версия 1.2.0</p>
+            </div>
+        </div>
+
+        <!-- Оверлей для меню -->
+        <div id="menu-overlay" class="menu-overlay"></div>
+
         <!-- Шапка -->
         <header>
             <div class="header-content">
+                <!-- Кнопка меню -->
+                <button id="menu-btn" class="menu-toggle">☰</button>
+                
                 <h1>💎 Охота за сокровищами</h1>
                 <div class="user-info">
                     <span id="username">Загрузка...</span>
@@ -55,12 +94,12 @@
             </div>
             
             <!-- Кнопка достижений -->
-            <button id="achievements-btn" style="position: absolute; left: 15px; top: 15px; background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; padding: 5px;">
+            <button id="achievements-btn" class="header-icon-btn" style="left: 60px;">
                 🏆
             </button>
             
             <!-- Кнопка пригласить -->
-            <button id="invite-btn" style="position: absolute; right: 15px; top: 15px; background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; padding: 5px;">
+            <button id="invite-btn" class="header-icon-btn" style="right: 15px;">
                 👥
             </button>
         </header>
@@ -71,9 +110,19 @@
         <!-- Нижняя панель -->
         <div id="bottom-panel">
             <div id="treasure-info" style="display: none;">
+                <!-- Кнопка закрытия -->
+                <button id="close-treasure-btn" class="treasure-close-btn">×</button>
+                
                 <!-- Картинка сокровища -->
-                <div id="treasure-image-container" style="width: 100%; height: 180px; margin-bottom: 15px; border-radius: 12px; overflow: hidden; display: none;">
-                    <img id="treasure-image" src="" alt="Treasure" style="width: 100%; height: 100%; object-fit: cover;">
+                <div id="treasure-image-container" style="width: 100%; height: 200px; margin-bottom: 15px; border-radius: 12px; overflow: hidden; position: relative; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <img id="treasure-image" src="" alt="Treasure" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                    <div id="image-loader" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; display: none;">
+                        <div class="mini-loader"></div>
+                        <p style="margin-top: 10px; font-size: 14px;">Генерируем изображение...</p>
+                    </div>
+                    <div id="image-placeholder" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 60px;">
+                        💎
+                    </div>
                 </div>
                 
                 <h3 id="treasure-name">Название сокровища</h3>
@@ -119,6 +168,7 @@
         <!-- Модальное окно достижений -->
         <div id="achievements-modal" class="modal" style="display: none;">
             <div class="modal-content" style="max-width: 400px; max-height: 80vh; overflow-y: auto;">
+                <button class="modal-close-btn" id="close-achievements">×</button>
                 <h2 style="color: #667eea; margin-bottom: 15px; font-size: 24px;">🏆 Достижения</h2>
                 
                 <!-- Прогресс бар -->
@@ -133,8 +183,46 @@
                 
                 <!-- Список достижений -->
                 <div id="achievements-list"></div>
+            </div>
+        </div>
+
+        <!-- Модальное окно настроек -->
+        <div id="settings-modal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 400px;">
+                <button class="modal-close-btn" id="close-settings">×</button>
+                <h2 style="color: #667eea; margin-bottom: 20px;">⚙️ Настройки</h2>
                 
-                <button id="close-achievements" class="btn-primary" style="margin-top: 20px;">Закрыть</button>
+                <div class="settings-group">
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <span>🔊 Звуковые эффекты</span>
+                            <input type="checkbox" id="sound-toggle" checked>
+                        </label>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <span>📳 Вибрация</span>
+                            <input type="checkbox" id="vibration-toggle" checked>
+                        </label>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <span>🤖 Генерация AI-изображений</span>
+                            <input type="checkbox" id="ai-images-toggle" checked>
+                        </label>
+                        <p class="setting-hint">Автоматически создавать уникальные изображения для каждой точки</p>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <span>🗺️ Показать все точки</span>
+                            <input type="checkbox" id="show-all-toggle" checked>
+                        </label>
+                        <p class="setting-hint">Скрыть уже найденные сокровища</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
