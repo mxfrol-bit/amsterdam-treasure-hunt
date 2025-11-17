@@ -35,6 +35,16 @@ body {
     animation: spin 1s linear infinite;
 }
 
+.mini-loader {
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid #fff;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -61,18 +71,25 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: relative;
 }
 
 header h1 {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 600;
+    flex: 1;
+    text-align: center;
 }
 
 .user-info {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    font-size: 14px;
+    font-size: 13px;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .score {
@@ -81,17 +98,128 @@ header h1 {
     background: rgba(255, 255, 255, 0.2);
     padding: 2px 8px;
     border-radius: 12px;
+    font-size: 12px;
 }
 
-#invite-btn {
-    position: absolute;
-    right: 15px;
-    top: 15px;
+/* Кнопки в шапке */
+.menu-toggle {
     background: transparent;
     border: none;
     color: white;
     font-size: 24px;
+    cursor: pointer;
+    padding: 5px 10px;
+    line-height: 1;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.header-icon-btn {
+    position: absolute;
+    top: 15px;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
     padding: 5px;
+    z-index: 1001;
+}
+
+/* Боковое меню */
+.side-menu {
+    position: fixed;
+    top: 0;
+    left: -300px;
+    width: 280px;
+    height: 100%;
+    background: #1a202c;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+    z-index: 2001;
+    transition: left 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.side-menu.active {
+    left: 0;
+}
+
+.menu-header {
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.menu-header h2 {
+    font-size: 22px;
+    color: white;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 32px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    width: 32px;
+    height: 32px;
+}
+
+.menu-content {
+    flex: 1;
+    padding: 10px 0;
+    overflow-y: auto;
+}
+
+.menu-item {
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 16px;
+}
+
+.menu-item:hover {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.menu-icon {
+    font-size: 24px;
+    width: 30px;
+    text-align: center;
+}
+
+.menu-footer {
+    padding: 15px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+}
+
+.menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    display: none;
+}
+
+.menu-overlay.active {
+    display: block;
 }
 
 /* Map */
@@ -117,7 +245,7 @@ header h1 {
     display: none !important;
 }
 
-/* Treasure Marker - ПРОСТОЙ */
+/* Treasure Marker */
 .treasure-marker {
     width: 40px;
     height: 40px;
@@ -130,6 +258,11 @@ header h1 {
     justify-content: center;
     font-size: 22px;
     cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.treasure-marker:hover {
+    transform: scale(1.1);
 }
 
 .treasure-marker.claimed {
@@ -160,7 +293,7 @@ header h1 {
     padding: 20px;
     box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.5);
     z-index: 1000;
-    max-height: 320px;
+    max-height: 400px;
     overflow-y: auto;
 }
 
@@ -175,13 +308,36 @@ header h1 {
     margin-bottom: 15px;
 }
 
+/* Кнопка закрытия в панели сокровища */
+.treasure-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.treasure-close-btn:hover {
+    background: rgba(0, 0, 0, 0.7);
+    transform: scale(1.1);
+}
+
 /* Treasure Image */
 #treasure-image-container {
-    width: 100%;
-    height: 180px;
-    margin-bottom: 15px;
-    border-radius: 12px;
-    overflow: hidden;
+    position: relative;
 }
 
 #treasure-image {
@@ -210,12 +366,18 @@ header h1 {
     font-weight: 600;
     cursor: pointer;
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    transition: transform 0.2s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
 }
 
 .btn-primary:disabled {
     background: #4a5568;
     cursor: not-allowed;
     box-shadow: none;
+    transform: none;
 }
 
 /* Stats */
@@ -257,6 +419,7 @@ header h1 {
     justify-content: center;
     align-items: center;
     z-index: 2000;
+    backdrop-filter: blur(5px);
 }
 
 .modal-content {
@@ -267,6 +430,43 @@ header h1 {
     max-width: 340px;
     width: 90%;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    position: relative;
+    animation: modalAppear 0.3s ease;
+}
+
+@keyframes modalAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f0f0f0;
+    border: none;
+    color: #666;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.modal-close-btn:hover {
+    background: #e0e0e0;
+    transform: scale(1.1);
 }
 
 .modal-icon {
@@ -293,32 +493,71 @@ header h1 {
     list-style-position: inside;
 }
 
-/* Фикс для смены ориентации */
-@media (orientation: portrait) {
-    #map {
-        height: 100vh !important;
-    }
+/* Settings Modal */
+.settings-group {
+    text-align: left;
 }
 
-@media (orientation: landscape) {
-    #map {
-        height: 100vh !important;
-    }
+.setting-item {
+    padding: 20px 0;
+    border-bottom: 1px solid #eee;
 }
 
-/* Фикс для мобильных браузеров */
-#map {
-    min-height: 100vh;
-    min-height: -webkit-fill-available;
+.setting-item:last-child {
+    border-bottom: none;
 }
 
-html {
-    height: -webkit-fill-available;
+.setting-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    color: #333;
+    font-weight: 500;
 }
 
-#close-modal {
-    margin-top: 10px;
+.setting-label span {
+    font-size: 16px;
 }
+
+.setting-label input[type="checkbox"] {
+    width: 50px;
+    height: 26px;
+    appearance: none;
+    background: #ddd;
+    border-radius: 13px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.setting-label input[type="checkbox"]:checked {
+    background: #667eea;
+}
+
+.setting-label input[type="checkbox"]::before {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: white;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s;
+}
+
+.setting-label input[type="checkbox"]:checked::before {
+    transform: translateX(24px);
+}
+
+.setting-hint {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #999;
+    line-height: 1.4;
+}
+
 /* Анимации для достижений */
 @keyframes slideDown {
     from {
@@ -363,4 +602,19 @@ html {
 
 html {
     height: -webkit-fill-available;
+}
+
+/* Адаптив для маленьких экранов */
+@media (max-width: 360px) {
+    header h1 {
+        font-size: 16px;
+    }
+    
+    .user-info {
+        font-size: 11px;
+    }
+    
+    #bottom-panel {
+        max-height: 350px;
+    }
 }
