@@ -608,3 +608,42 @@ header h1 {
 #bottom-panel::-webkit-scrollbar-thumb:hover {
     background: rgba(102, 126, 234, 0.7);
 }
+/* УЛЬТРА-ЖЁСТКИЙ ФИКС РАЗМЕРА МАРКЕРОВ */
+.mapboxgl-marker {
+    width: 45px !important;
+    height: 45px !important;
+}
+
+.mapboxgl-marker > * {
+    width: 45px !important;
+    height: 45px !important;
+    min-width: 45px !important;
+    min-height: 45px !important;
+    max-width: 45px !important;
+    max-height: 45px !important;
+}
+
+.treasure-marker {
+    width: 45px !important;
+    height: 45px !important;
+    min-width: 45px !important;
+    min-height: 45px !important;
+    max-width: 45px !important;
+    max-height: 45px !important;
+    line-height: 45px !important;
+    text-align: center !important;
+    font-size: 24px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.user-marker {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+    max-width: 22px !important;
+    max-height: 22px !important;
+}
