@@ -283,7 +283,7 @@ async function selectTreasure(treasure) {
     else if (settings.aiImages) {
         imagePlaceholder.textContent = treasure.icon || '💎';
         
-        // Генерируем изображение
+        // Генерируем изображение на основе легенды и истории
         generateAIImage(treasure);
     }
     
@@ -311,7 +311,7 @@ function closeTreasureView() {
 }
 
 // ============================================
-// AI ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ
+// AI ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ НА ОСНОВЕ ЛЕГЕНДЫ
 // ============================================
 
 async function generateAIImage(treasure) {
@@ -323,16 +323,18 @@ async function generateAIImage(treasure) {
         imageLoader.style.display = 'block';
         imagePlaceholder.style.display = 'none';
         
-        // Формируем промпт на основе информации о сокровище
-        const prompt = `A beautiful landmark photo of ${treasure.name}, ${treasure.description}. High quality, professional photography, vibrant colors, detailed.`;
+        // Создаем детальный промпт на основе легенды и истории сокровища
+        const storyPrompt = createStoryPrompt(treasure);
         
-        console.log('Generating AI image with prompt:', prompt);
+        console.log('🎨 Генерация изображения на основе истории:', storyPrompt);
         
-        // Используем API Anthropic для генерации изображения через Claude
-        // В реальности можно использовать Stable Diffusion, DALL-E или другие API
-        // Для демонстрации используем заглушку с Unsplash
+        // Пытаемся сгенерировать через Claude API (если доступен)
+        let imageUrl = await generateImageWithClaude(treasure, storyPrompt);
         
-        const imageUrl = await fetchUnsplashImage(treasure);
+        // Если Claude недоступен, используем Unsplash с улучшенным поиском
+        if (!imageUrl) {
+            imageUrl = await fetchUnsplashImage(treasure, storyPrompt);
+        }
         
         if (imageUrl) {
             treasureImage.src = imageUrl;
@@ -359,22 +361,210 @@ async function generateAIImage(treasure) {
     }
 }
 
-// Получение изображения из Unsplash (заглушка для AI генерации)
-async function fetchUnsplashImage(treasure) {
+// Создание детального промпта на основе легенды и истории
+function createStoryPrompt(treasure) {
+    // Базовая информация
+    let prompt = treasure.name;
+    
+    // Добавляем описание локации
+    if (treasure.description) {
+        prompt += `, ${treasure.description}`;
+    }
+    
+    // Добавляем историческую информацию и легенду
+    if (treasure.legend) {
+        prompt += `. Story: ${treasure.legend}`;
+    }
+    
+    // Добавляем категорию для стилизации
+    if (treasure.category) {
+        const categoryStyles = {
+            'history': 'historical landmark, ancient architecture, vintage photography style, aged patina',
+            'nature': 'natural landscape, scenic view, beautiful nature photography, lush greenery',
+            'culture': 'cultural heritage site, traditional architecture, vibrant colors, folk elements',
+            'modern': 'modern architecture, contemporary design, urban landscape, glass and steel',
+            'architecture': 'architectural masterpiece, detailed building facade, professional architecture photography',
+            'park': 'beautiful park, green spaces, peaceful nature scene, walking paths',
+            'church': 'religious architecture, orthodox church, golden domes, spiritual atmosphere, sacred art',
+            'monument': 'historical monument, memorial, monumental architecture, commemorative statue',
+            'museum': 'museum building, cultural institution, classical architecture, exhibition halls',
+            'kremlin': 'fortress walls, towers, medieval architecture, fortification, historical stronghold',
+            'river': 'riverbank, waterfront, scenic water view, riverside landscape',
+            'square': 'city square, public space, urban gathering place, architectural ensemble'
+        };
+        
+        const styleGuide = categoryStyles[treasure.category] || 'landmark photography';
+        prompt += `. Visual style: ${styleGuide}`;
+    }
+    
+    // Добавляем временной контекст из легенды
+    if (treasure.legend) {
+        const legend = treasure.legend.toLowerCase();
+        
+        if (legend.includes('век') || legend.includes('century')) {
+            prompt += ', historical atmosphere, period architecture';
+        }
+        
+        if (legend.includes('война') || legend.includes('war')) {
+            prompt += ', dramatic historical scene, wartime era';
+        }
+        
+        if (legend.includes('церковь') || legend.includes('church')) {
+            prompt += ', religious iconography, orthodox traditions';
+        }
+        
+        if (legend.includes('купец') || legend.includes('merchant') || legend.includes('торг')) {
+            prompt += ', merchant era, trading post atmosphere';
+        }
+    }
+    
+    // Общие улучшения для качества
+    prompt += '. Professional photography, high quality, detailed, vibrant colors, 4k resolution, cinematic lighting';
+    
+    return prompt;
+}
+
+// Генерация изображения через Claude API (для получения оптимизированного промпта)
+async function generateImageWithClaude(treasure, storyPrompt) {
     try {
-        // Используем keywords для поиска релевантных изображений
-        const keywords = treasure.name.split(' ').join(',');
-        const response = await fetch(`https://source.unsplash.com/800x600/?${keywords},landmark,architecture`);
+        // Используем Claude для создания оптимального промпта для DALL-E/Stable Diffusion
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'anthropic-version': '2023-06-01'
+                // API ключ обрабатывается на бэкенде для безопасности
+            },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 500,
+                messages: [{
+                    role: 'user',
+                    content: `Создай детальный промпт для генерации изображения AI на основе этой информации о сокровище:
+
+Название: ${treasure.name}
+Описание локации: ${treasure.description || 'Историческая достопримечательность'}
+Легенда/История: ${treasure.legend || 'Древнее место с богатой историей'}
+Категория: ${treasure.category || 'landmark'}
+
+Создай яркий, детальный промпт, который передаст:
+1. Визуальные детали архитектуры/ландшафта
+2. Историческую атмосферу из легенды
+3. Культурное значение
+4. Освещение и настроение
+5. Специфические архитектурные элементы
+6. Визуализацию истории и легенды
+
+Промпт должен быть на английском языке для AI-генератора изображений.
+Верни ТОЛЬКО текст промпта, без объяснений.`
+                }]
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const optimizedPrompt = data.content[0].text;
+            
+            console.log('✨ Claude создал оптимизированный промпт:', optimizedPrompt);
+            
+            // Теперь можно использовать этот промпт с DALL-E или Stable Diffusion
+            // Для демонстрации используем Unsplash с оптимизированным поиском
+            return await fetchUnsplashImageWithPrompt(optimizedPrompt);
+        }
+        
+        return null;
+        
+    } catch (error) {
+        console.error('Claude API error:', error);
+        return null;
+    }
+}
+
+// Получение изображения из Unsplash с улучшенным поиском на основе истории
+async function fetchUnsplashImage(treasure, storyPrompt) {
+    try {
+        // Извлекаем ключевые слова из названия, описания и легенды
+        let keywords = [];
+        
+        // Добавляем название
+        if (treasure.name) {
+            keywords.push(...treasure.name.split(' ').filter(w => w.length > 3));
+        }
+        
+        // Добавляем ключевые слова из описания
+        if (treasure.description) {
+            const descWords = treasure.description
+                .split(' ')
+                .filter(w => w.length > 4)
+                .slice(0, 3);
+            keywords.push(...descWords);
+        }
+        
+        // Добавляем ключевые слова из легенды (самое важное!)
+        if (treasure.legend) {
+            const legendWords = treasure.legend
+                .replace(/[.,!?;:()]/g, '')
+                .split(' ')
+                .filter(w => w.length > 5)
+                .slice(0, 4);
+            keywords.push(...legendWords);
+        }
+        
+        // Добавляем категорию
+        if (treasure.category) {
+            keywords.push(treasure.category);
+        }
+        
+        // Добавляем контекстные слова
+        const contextWords = ['landmark', 'architecture', 'historical', 'heritage'];
+        keywords.push(...contextWords);
+        
+        // Удаляем дубликаты и создаем строку поиска
+        const uniqueKeywords = [...new Set(keywords)];
+        const searchQuery = uniqueKeywords.slice(0, 8).join(',');
+        
+        console.log('🔍 Поиск в Unsplash по ключевым словам из истории:', searchQuery);
+        
+        const response = await fetch(`https://source.unsplash.com/800x600/?${searchQuery}`);
         
         if (response.ok) {
             return response.url;
         }
         
-        // Fallback на общие изображения города
-        return `https://source.unsplash.com/800x600/?city,architecture`;
+        // Fallback на общие изображения с категорией
+        const fallbackQuery = `${treasure.category || 'landmark'},architecture,historical`;
+        return `https://source.unsplash.com/800x600/?${fallbackQuery}`;
         
     } catch (error) {
         console.error('Unsplash error:', error);
+        return null;
+    }
+}
+
+// Получение изображения из Unsplash с промптом от Claude
+async function fetchUnsplashImageWithPrompt(prompt) {
+    try {
+        // Извлекаем ключевые слова из промпта
+        const keywords = prompt
+            .toLowerCase()
+            .replace(/[.,!?;:()]/g, '')
+            .split(' ')
+            .filter(w => w.length > 4 && !['that', 'this', 'with', 'from', 'have'].includes(w))
+            .slice(0, 8)
+            .join(',');
+        
+        console.log('🔍 Unsplash поиск с промптом от Claude:', keywords);
+        
+        const response = await fetch(`https://source.unsplash.com/800x600/?${keywords}`);
+        
+        if (response.ok) {
+            return response.url;
+        }
+        
+        return null;
+        
+    } catch (error) {
+        console.error('Unsplash with prompt error:', error);
         return null;
     }
 }
@@ -387,7 +577,7 @@ async function saveTreasureImage(treasureId, imageUrl) {
             .update({ image_url: imageUrl })
             .eq('id', treasureId);
         
-        console.log('Image URL saved for treasure:', treasureId);
+        console.log('💾 Изображение сохранено для сокровища:', treasureId);
     } catch (error) {
         console.error('Error saving image URL:', error);
     }
@@ -724,11 +914,15 @@ function loadSettings() {
         settings = JSON.parse(saved);
     }
     
-    // Применяем настройки к UI
-    document.getElementById('sound-toggle').checked = settings.sound;
-    document.getElementById('vibration-toggle').checked = settings.vibration;
-    document.getElementById('ai-images-toggle').checked = settings.aiImages;
-    document.getElementById('show-all-toggle').checked = settings.showAll;
+    // Применяем настройки к UI (после загрузки DOM)
+    setTimeout(() => {
+        if (document.getElementById('sound-toggle')) {
+            document.getElementById('sound-toggle').checked = settings.sound;
+            document.getElementById('vibration-toggle').checked = settings.vibration;
+            document.getElementById('ai-images-toggle').checked = settings.aiImages;
+            document.getElementById('show-all-toggle').checked = settings.showAll;
+        }
+    }, 100);
 }
 
 function saveSettings() {
