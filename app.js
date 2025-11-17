@@ -6,8 +6,8 @@ const CONFIG = {
     MAPBOX_TOKEN: 'pk.eyJ1IjoibXJoZXJvIiwiYSI6ImNtaTI1YmZsODFiODUyanNjZHRlaXRsaWYifQ.QMdYQgjDCxDLxSQmIUJJiw',
     SUPABASE_URL: 'https://otvtqoowhupqxushkmma.supabase.co',
     SUPABASE_KEY: 'sb_publishable_yeG_VzvaJW-0Pxikgrup7g_cYZXKLfn',
-    CLAIM_DISTANCE: 100, // метров - для тестирования
-    BOT_USERNAME: 'AmsterdamTreasureHunt_bot' // Замени на имя своего бота
+    CLAIM_DISTANCE: 100,
+    BOT_USERNAME: 'AmsterdamTreasureHunt_bot'
 };
 
 // ============================================
@@ -30,44 +30,30 @@ let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Инициализация Supabase
         supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
         
-        // Инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
         
-        // Получение данных пользователя из Telegram
         const telegramUser = tg.initDataUnsafe?.user || {
-            id: Math.floor(Math.random() * 1000000), // Fallback для тестирования
+            id: Math.floor(Math.random() * 1000000),
             username: 'ТестПользователь'
         };
         
-        // Инициализация пользователя в базе
         currentUser = await initUser(telegramUser);
         
-        // Обновление UI с данными пользователя
         document.getElementById('username').textContent = `@${currentUser.username || 'Аноним'}`;
         document.getElementById('user-score').textContent = currentUser.score;
         
-        // Загрузка сокровищ и находок пользователя
         await loadTreasures();
         await loadUserClaims();
         
-        // Инициализация карты
         initMap();
-        
-        // Запуск отслеживания геолокации
         startLocationTracking();
-        
-        // Настройка обработчиков событий
         setupEventListeners();
-        
-        // Показ онбординга для новых пользователей
         showOnboardingIfNeeded();
         
-        // Скрытие экрана загрузки
         setTimeout(() => {
             document.getElementById('loading-screen').style.display = 'none';
             document.getElementById('app').style.display = 'block';
@@ -96,7 +82,6 @@ function showOnboardingIfNeeded() {
 
 async function initUser(telegramUser) {
     try {
-        // Проверка существования пользователя
         const { data: existingUser } = await supabase
             .from('users')
             .select('*')
@@ -107,7 +92,6 @@ async function initUser(telegramUser) {
             return existingUser;
         }
         
-        // Создание нового пользователя
         const { data: newUser, error } = await supabase
             .from('users')
             .insert([{
@@ -123,7 +107,6 @@ async function initUser(telegramUser) {
         
     } catch (error) {
         console.error('Ошибка инициализации пользователя:', error);
-        // Возврат fallback пользователя для тестирования
         return {
             id: 1,
             telegram_id: telegramUser.id,
@@ -146,6 +129,8 @@ async function loadTreasures() {
         
         if (error) throw error;
         treasures = data || [];
+        
+        console.log('Загружено сокровищ:', treasures.length);
         
         document.getElementById('total-treasures').textContent = treasures.length;
         updateStats();
@@ -187,31 +172,40 @@ function updateStats() {
 function initMap() {
     mapboxgl.accessToken = CONFIG.MAPBOX_TOKEN;
     
-    // Центр карты - Нижний Новгород
+    // НИЖНИЙ НОВГОРОД - ЦЕНТР ГОРОДА
     const center = [43.9360, 56.2965];
     
     map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/dark-v11',
         center: center,
-        zoom: 13,
-        pitch: 45
+        zoom: 12,
+        pitch: 0
     });
     
     map.on('load', () => {
-        // Добавление сокровищ на карту
+        console.log('Карта загружена, добавляем сокровища...');
         addTreasuresToMap();
     });
 }
 
+// ============================================
+// ДОБАВЛЕНИЕ СОКРОВИЩ НА КАРТУ - ФИКС ИКОНОК
+// ============================================
+
 function addTreasuresToMap() {
-    treasures.forEach(treasure => {
+    console.log('Добавление сокровищ на карту:', treasures.length);
+    
+    treasures.forEach((treasure, index) => {
         const isClaimed = userClaims.includes(treasure.id);
         
-        // Создание элемента маркера
+        console.log(`Сокровище ${index + 1}:`, treasure.name, treasure.icon, [treasure.lng, treasure.lat]);
+        
+        // Создание элемента маркера с УНИКАЛЬНОЙ ИКОНКОЙ
         const el = document.createElement('div');
         el.className = `treasure-marker ${isClaimed ? 'claimed' : ''}`;
-        el.innerHTML = isClaimed ? '✓' : '💎';
+        el.innerHTML = isClaimed ? '✓' : (treasure.icon || '💎');
+        el.style.fontSize = '24px';
         
         // Добавление обработчика клика
         el.addEventListener('click', () => {
@@ -252,7 +246,8 @@ function updateUserLocation(position) {
         lng: position.coords.longitude
     };
     
-    // Обновление или создание маркера пользователя
+    console.log('Позиция пользователя:', userLocation);
+    
     if (userMarker) {
         userMarker.setLngLat([userLocation.lng, userLocation.lat]);
     } else {
@@ -263,14 +258,12 @@ function updateUserLocation(position) {
             .setLngLat([userLocation.lng, userLocation.lat])
             .addTo(map);
         
-        // Центрирование карты на пользователе (только первый раз)
         map.flyTo({
             center: [userLocation.lng, userLocation.lat],
-            zoom: 15
+            zoom: 14
         });
     }
     
-    // Обновление расстояния до выбранного сокровища
     if (selectedTreasure) {
         updateDistanceDisplay();
     }
@@ -299,15 +292,27 @@ function handleLocationError(error) {
 function selectTreasure(treasure) {
     selectedTreasure = treasure;
     
-    // Показ панели информации о сокровище
+    console.log('Выбрано сокровище:', treasure);
+    
     document.getElementById('default-info').style.display = 'none';
     document.getElementById('treasure-info').style.display = 'block';
     
-    // Обновление информации
-    document.getElementById('treasure-name').textContent = treasure.name;
+    // Обновление информации С ИКОНКОЙ
+    document.getElementById('treasure-name').innerHTML = 
+        `${treasure.icon || '💎'} ${treasure.name}`;
     document.getElementById('treasure-description').textContent = treasure.description;
     
-    // Проверка, найдено ли уже
+    // Показываем картинку если есть
+    const imageContainer = document.getElementById('treasure-image-container');
+    const imageElement = document.getElementById('treasure-image');
+    
+    if (treasure.image_url) {
+        imageElement.src = treasure.image_url;
+        imageContainer.style.display = 'block';
+    } else {
+        imageContainer.style.display = 'none';
+    }
+    
     const isClaimed = userClaims.includes(treasure.id);
     const claimBtn = document.getElementById('claim-btn');
     
@@ -318,10 +323,8 @@ function selectTreasure(treasure) {
         return;
     }
     
-    // Обновление расстояния и состояния кнопки
     updateDistanceDisplay();
     
-    // Перелёт к сокровищу
     map.flyTo({
         center: [treasure.lng, treasure.lat],
         zoom: 16
@@ -350,7 +353,7 @@ function updateDistanceDisplay() {
     } else {
         claimBtn.textContent = `🔒 Подойдите ближе (нужно ${CONFIG.CLAIM_DISTANCE}м)`;
         claimBtn.disabled = true;
-        claimBtn.style.background = '#ccc';
+        claimBtn.style.background = 'linear-gradient(135deg, #4a5568 0%, #2d3748 100%)';
     }
 }
 
@@ -374,12 +377,10 @@ async function claimTreasure() {
     }
     
     try {
-        // Отключение кнопки
         const claimBtn = document.getElementById('claim-btn');
         claimBtn.disabled = true;
         claimBtn.textContent = 'Забираем...';
         
-        // Вставка записи о находке
         const { error: claimError } = await supabase
             .from('claims')
             .insert([{
@@ -389,7 +390,6 @@ async function claimTreasure() {
         
         if (claimError) throw claimError;
         
-        // Обновление счёта пользователя
         const newScore = currentUser.score + selectedTreasure.points;
         const { error: updateError } = await supabase
             .from('users')
@@ -398,18 +398,14 @@ async function claimTreasure() {
         
         if (updateError) throw updateError;
         
-        // Обновление локального состояния
         currentUser.score = newScore;
         userClaims.push(selectedTreasure.id);
         
-        // Обновление UI
         document.getElementById('user-score').textContent = newScore;
         updateStats();
         
-        // Показ модального окна успеха
         showSuccessModal(selectedTreasure.points);
         
-        // Перезагрузка сокровищ для обновления UI
         await loadTreasures();
         
     } catch (error) {
@@ -419,7 +415,6 @@ async function claimTreasure() {
 }
 
 function showSuccessModal(points) {
-    // Воспроизведение звука
     const sound = document.getElementById('claim-sound');
     if (sound) {
         sound.play().catch(e => console.log('Звук не воспроизведён:', e));
@@ -435,26 +430,20 @@ function showSuccessModal(points) {
 // ============================================
 
 function setupEventListeners() {
-    // Кнопка "Забрать"
     document.getElementById('claim-btn').addEventListener('click', claimTreasure);
     
-    // Закрытие модального окна успеха
     document.getElementById('close-modal').addEventListener('click', () => {
         document.getElementById('success-modal').style.display = 'none';
-        
-        // Возврат к виду по умолчанию
         document.getElementById('treasure-info').style.display = 'none';
         document.getElementById('default-info').style.display = 'block';
         selectedTreasure = null;
     });
     
-    // Кнопка "Начать охоту" (онбординг)
     document.getElementById('start-hunting').addEventListener('click', () => {
         localStorage.setItem('onboarding_seen', 'true');
         document.getElementById('onboarding-modal').style.display = 'none';
     });
     
-    // Кнопка "Пригласить друзей"
     document.getElementById('invite-btn').addEventListener('click', () => {
         const tg = window.Telegram.WebApp;
         const shareText = encodeURIComponent('Найди сокровища в Нижнем Новгороде! 💎🗺️');
@@ -469,7 +458,7 @@ function setupEventListeners() {
 // ============================================
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3; // Радиус Земли в метрах
+    const R = 6371e3;
     const φ1 = lat1 * Math.PI / 180;
     const φ2 = lat2 * Math.PI / 180;
     const Δφ = (lat2 - lat1) * Math.PI / 180;
@@ -480,10 +469,9 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
               Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     
-    return R * c; // Расстояние в метрах
+    return R * c;
 }
 
-// Очистка при выгрузке страницы
 window.addEventListener('beforeunload', () => {
     if (watchId) {
         navigator.geolocation.clearWatch(watchId);
