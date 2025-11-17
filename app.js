@@ -278,6 +278,13 @@ async function selectTreasure(treasure) {
             imagePlaceholder.style.display = 'none';
             treasureImage.style.display = 'block';
         };
+        treasureImage.onerror = () => {
+            // Если сохраненное изображение не загрузилось, генерируем новое
+            if (settings.aiImages) {
+                imagePlaceholder.textContent = treasure.icon || '💎';
+                generateAIImage(treasure);
+            }
+        };
     } 
     // Если включена генерация AI и нет картинки
     else if (settings.aiImages) {
@@ -311,7 +318,7 @@ function closeTreasureView() {
 }
 
 // ============================================
-// AI ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ НА ОСНОВЕ ЛЕГЕНДЫ
+// AI ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ (БЫСТРАЯ ВЕРСИЯ)
 // ============================================
 
 async function generateAIImage(treasure) {
@@ -324,17 +331,12 @@ async function generateAIImage(treasure) {
         imagePlaceholder.style.display = 'none';
         
         // Создаем детальный промпт на основе легенды и истории сокровища
-        const storyPrompt = createStoryPrompt(treasure);
+        const prompt = createStoryPrompt(treasure);
         
-        console.log('🎨 Генерация изображения на основе истории:', storyPrompt);
+        console.log('🎨 Генерация через Pollinations AI:', prompt);
         
-        // Пытаемся сгенерировать через Claude API (если доступен)
-        let imageUrl = await generateImageWithClaude(treasure, storyPrompt);
-        
-        // Если Claude недоступен, используем Unsplash с улучшенным поиском
-        if (!imageUrl) {
-            imageUrl = await fetchUnsplashImage(treasure, storyPrompt);
-        }
+        // Используем Pollinations AI - БЕСПЛАТНО и БЫСТРО!
+        const imageUrl = await generateWithPollinations(prompt);
         
         if (imageUrl) {
             treasureImage.src = imageUrl;
@@ -347,6 +349,7 @@ async function generateAIImage(treasure) {
             };
             
             treasureImage.onerror = () => {
+                console.error('Ошибка загрузки изображения');
                 imageLoader.style.display = 'none';
                 imagePlaceholder.style.display = 'block';
             };
@@ -363,208 +366,102 @@ async function generateAIImage(treasure) {
 
 // Создание детального промпта на основе легенды и истории
 function createStoryPrompt(treasure) {
-    // Базовая информация
-    let prompt = treasure.name;
+    let prompt = '';
+    
+    // Добавляем название
+    if (treasure.name) {
+        prompt += treasure.name;
+    }
     
     // Добавляем описание локации
     if (treasure.description) {
         prompt += `, ${treasure.description}`;
     }
     
-    // Добавляем историческую информацию и легенду
+    // Добавляем историческую информацию и легенду (ГЛАВНОЕ!)
     if (treasure.legend) {
-        prompt += `. Story: ${treasure.legend}`;
+        prompt += `. ${treasure.legend}`;
     }
     
-    // Добавляем категорию для стилизации
+    // Добавляем стиль по категории
     if (treasure.category) {
         const categoryStyles = {
-            'history': 'historical landmark, ancient architecture, vintage photography style, aged patina',
-            'nature': 'natural landscape, scenic view, beautiful nature photography, lush greenery',
-            'culture': 'cultural heritage site, traditional architecture, vibrant colors, folk elements',
-            'modern': 'modern architecture, contemporary design, urban landscape, glass and steel',
-            'architecture': 'architectural masterpiece, detailed building facade, professional architecture photography',
-            'park': 'beautiful park, green spaces, peaceful nature scene, walking paths',
-            'church': 'religious architecture, orthodox church, golden domes, spiritual atmosphere, sacred art',
-            'monument': 'historical monument, memorial, monumental architecture, commemorative statue',
-            'museum': 'museum building, cultural institution, classical architecture, exhibition halls',
-            'kremlin': 'fortress walls, towers, medieval architecture, fortification, historical stronghold',
-            'river': 'riverbank, waterfront, scenic water view, riverside landscape',
-            'square': 'city square, public space, urban gathering place, architectural ensemble'
+            'history': 'historical landmark, ancient architecture, vintage style',
+            'nature': 'natural landscape, scenic view, nature photography',
+            'culture': 'cultural heritage, traditional architecture, vibrant',
+            'modern': 'modern architecture, contemporary, urban',
+            'architecture': 'architectural masterpiece, detailed facade',
+            'park': 'beautiful park, green spaces, peaceful',
+            'church': 'orthodox church, golden domes, religious architecture',
+            'monument': 'historical monument, memorial, monumental',
+            'museum': 'museum building, classical architecture',
+            'kremlin': 'fortress, medieval towers, stronghold',
+            'river': 'riverbank, waterfront, scenic water',
+            'square': 'city square, urban space, architectural'
         };
         
-        const styleGuide = categoryStyles[treasure.category] || 'landmark photography';
-        prompt += `. Visual style: ${styleGuide}`;
+        const styleGuide = categoryStyles[treasure.category] || 'landmark';
+        prompt += `. ${styleGuide}`;
     }
     
-    // Добавляем временной контекст из легенды
-    if (treasure.legend) {
-        const legend = treasure.legend.toLowerCase();
-        
-        if (legend.includes('век') || legend.includes('century')) {
-            prompt += ', historical atmosphere, period architecture';
-        }
-        
-        if (legend.includes('война') || legend.includes('war')) {
-            prompt += ', dramatic historical scene, wartime era';
-        }
-        
-        if (legend.includes('церковь') || legend.includes('church')) {
-            prompt += ', religious iconography, orthodox traditions';
-        }
-        
-        if (legend.includes('купец') || legend.includes('merchant') || legend.includes('торг')) {
-            prompt += ', merchant era, trading post atmosphere';
-        }
-    }
-    
-    // Общие улучшения для качества
-    prompt += '. Professional photography, high quality, detailed, vibrant colors, 4k resolution, cinematic lighting';
+    // Общие улучшения
+    prompt += '. professional photography, high quality, detailed, 4k';
     
     return prompt;
 }
 
-// Генерация изображения через Claude API (для получения оптимизированного промпта)
-async function generateImageWithClaude(treasure, storyPrompt) {
+// Генерация через Pollinations AI (БЫСТРО И БЕСПЛАТНО!)
+async function generateWithPollinations(prompt) {
     try {
-        // Используем Claude для создания оптимального промпта для DALL-E/Stable Diffusion
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'anthropic-version': '2023-06-01'
-                // API ключ обрабатывается на бэкенде для безопасности
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 500,
-                messages: [{
-                    role: 'user',
-                    content: `Создай детальный промпт для генерации изображения AI на основе этой информации о сокровище:
-
-Название: ${treasure.name}
-Описание локации: ${treasure.description || 'Историческая достопримечательность'}
-Легенда/История: ${treasure.legend || 'Древнее место с богатой историей'}
-Категория: ${treasure.category || 'landmark'}
-
-Создай яркий, детальный промпт, который передаст:
-1. Визуальные детали архитектуры/ландшафта
-2. Историческую атмосферу из легенды
-3. Культурное значение
-4. Освещение и настроение
-5. Специфические архитектурные элементы
-6. Визуализацию истории и легенды
-
-Промпт должен быть на английском языке для AI-генератора изображений.
-Верни ТОЛЬКО текст промпта, без объяснений.`
-                }]
-            })
-        });
-
+        // Pollinations AI - бесплатный и быстрый сервис генерации изображений
+        // Поддерживает русский язык в промптах!
+        
+        const encodedPrompt = encodeURIComponent(prompt);
+        
+        // Добавляем параметры для лучшего качества
+        const width = 800;
+        const height = 600;
+        const seed = Math.floor(Math.random() * 1000000); // Рандомный seed для уникальности
+        
+        // URL для Pollinations AI
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+        
+        console.log('✨ Генерируем изображение:', imageUrl);
+        
+        // Pollinations возвращает изображение напрямую, проверяем доступность
+        const response = await fetch(imageUrl, { method: 'HEAD' });
+        
         if (response.ok) {
-            const data = await response.json();
-            const optimizedPrompt = data.content[0].text;
-            
-            console.log('✨ Claude создал оптимизированный промпт:', optimizedPrompt);
-            
-            // Теперь можно использовать этот промпт с DALL-E или Stable Diffusion
-            // Для демонстрации используем Unsplash с оптимизированным поиском
-            return await fetchUnsplashImageWithPrompt(optimizedPrompt);
+            return imageUrl;
         }
         
-        return null;
+        throw new Error('Pollinations API недоступен');
         
     } catch (error) {
-        console.error('Claude API error:', error);
-        return null;
+        console.error('Pollinations error:', error);
+        
+        // Fallback на Unsplash
+        return await fallbackToUnsplash(prompt);
     }
 }
 
-// Получение изображения из Unsplash с улучшенным поиском на основе истории
-async function fetchUnsplashImage(treasure, storyPrompt) {
+// Fallback на Unsplash если Pollinations недоступен
+async function fallbackToUnsplash(prompt) {
     try {
-        // Извлекаем ключевые слова из названия, описания и легенды
-        let keywords = [];
-        
-        // Добавляем название
-        if (treasure.name) {
-            keywords.push(...treasure.name.split(' ').filter(w => w.length > 3));
-        }
-        
-        // Добавляем ключевые слова из описания
-        if (treasure.description) {
-            const descWords = treasure.description
-                .split(' ')
-                .filter(w => w.length > 4)
-                .slice(0, 3);
-            keywords.push(...descWords);
-        }
-        
-        // Добавляем ключевые слова из легенды (самое важное!)
-        if (treasure.legend) {
-            const legendWords = treasure.legend
-                .replace(/[.,!?;:()]/g, '')
-                .split(' ')
-                .filter(w => w.length > 5)
-                .slice(0, 4);
-            keywords.push(...legendWords);
-        }
-        
-        // Добавляем категорию
-        if (treasure.category) {
-            keywords.push(treasure.category);
-        }
-        
-        // Добавляем контекстные слова
-        const contextWords = ['landmark', 'architecture', 'historical', 'heritage'];
-        keywords.push(...contextWords);
-        
-        // Удаляем дубликаты и создаем строку поиска
-        const uniqueKeywords = [...new Set(keywords)];
-        const searchQuery = uniqueKeywords.slice(0, 8).join(',');
-        
-        console.log('🔍 Поиск в Unsplash по ключевым словам из истории:', searchQuery);
-        
-        const response = await fetch(`https://source.unsplash.com/800x600/?${searchQuery}`);
-        
-        if (response.ok) {
-            return response.url;
-        }
-        
-        // Fallback на общие изображения с категорией
-        const fallbackQuery = `${treasure.category || 'landmark'},architecture,historical`;
-        return `https://source.unsplash.com/800x600/?${fallbackQuery}`;
-        
-    } catch (error) {
-        console.error('Unsplash error:', error);
-        return null;
-    }
-}
-
-// Получение изображения из Unsplash с промптом от Claude
-async function fetchUnsplashImageWithPrompt(prompt) {
-    try {
-        // Извлекаем ключевые слова из промпта
+        // Извлекаем ключевые слова
         const keywords = prompt
-            .toLowerCase()
             .replace(/[.,!?;:()]/g, '')
             .split(' ')
-            .filter(w => w.length > 4 && !['that', 'this', 'with', 'from', 'have'].includes(w))
-            .slice(0, 8)
+            .filter(w => w.length > 4)
+            .slice(0, 6)
             .join(',');
         
-        console.log('🔍 Unsplash поиск с промптом от Claude:', keywords);
+        console.log('🔄 Fallback на Unsplash:', keywords);
         
-        const response = await fetch(`https://source.unsplash.com/800x600/?${keywords}`);
-        
-        if (response.ok) {
-            return response.url;
-        }
-        
-        return null;
+        return `https://source.unsplash.com/800x600/?${keywords}`;
         
     } catch (error) {
-        console.error('Unsplash with prompt error:', error);
+        console.error('Unsplash fallback error:', error);
         return null;
     }
 }
@@ -596,7 +493,14 @@ function updateDistanceDisplay() {
     const distanceText = document.getElementById('distance-text');
     const claimBtn = document.getElementById('claim-btn');
     
-    if (distance <= CONFIG.CLAIM_DISTANCE) {
+    // Проверяем, было ли уже забрано это сокровище
+    const isClaimed = userClaims.includes(selectedTreasure.id);
+    
+    if (isClaimed) {
+        distanceText.textContent = `✅ Уже найдено!`;
+        claimBtn.disabled = true;
+        claimBtn.textContent = '✓ Сокровище найдено';
+    } else if (distance <= CONFIG.CLAIM_DISTANCE) {
         distanceText.textContent = `📍 ${Math.round(distance)}м • Можно забрать!`;
         claimBtn.disabled = false;
         claimBtn.textContent = `✨ Забрать сокровище (+${selectedTreasure.points} очков)`;
@@ -838,11 +742,17 @@ async function showAchievementsModal() {
 }
 
 // ============================================
-// ЗАБРАТЬ СОКРОВИЩЕ
+// ЗАБРАТЬ СОКРОВИЩЕ (ИСПРАВЛЕНО!)
 // ============================================
 
 async function claimTreasure() {
     if (!selectedTreasure || !userLocation) return;
+    
+    // ПРОВЕРКА 1: Уже забрано?
+    if (userClaims.includes(selectedTreasure.id)) {
+        alert('Вы уже нашли это сокровище!');
+        return;
+    }
     
     const distance = calculateDistance(
         userLocation.lat,
@@ -851,6 +761,7 @@ async function claimTreasure() {
         selectedTreasure.lng
     );
     
+    // ПРОВЕРКА 2: Слишком далеко?
     if (distance > CONFIG.CLAIM_DISTANCE) {
         alert('Вам нужно подойти ближе!');
         return;
@@ -861,25 +772,60 @@ async function claimTreasure() {
         claimBtn.disabled = true;
         claimBtn.textContent = 'Забираем...';
         
-        await supabase
+        // ПРОВЕРКА 3: Проверяем в базе данных перед записью
+        const { data: existingClaim } = await supabase
+            .from('claims')
+            .select('id')
+            .eq('user_id', currentUser.id)
+            .eq('treasure_id', selectedTreasure.id)
+            .single();
+        
+        if (existingClaim) {
+            alert('Вы уже нашли это сокровище!');
+            claimBtn.disabled = true;
+            claimBtn.textContent = '✓ Сокровище найдено';
+            return;
+        }
+        
+        // Записываем claim
+        const { error: claimError } = await supabase
             .from('claims')
             .insert([{
                 user_id: currentUser.id,
                 treasure_id: selectedTreasure.id
             }]);
         
+        if (claimError) {
+            // Проверяем, не ошибка ли дубликата
+            if (claimError.code === '23505') { // Unique constraint violation
+                alert('Вы уже нашли это сокровище!');
+                claimBtn.disabled = true;
+                claimBtn.textContent = '✓ Сокровище найдено';
+                
+                // Обновляем локальный массив
+                if (!userClaims.includes(selectedTreasure.id)) {
+                    userClaims.push(selectedTreasure.id);
+                }
+                return;
+            }
+            throw claimError;
+        }
+        
+        // Обновляем очки
         const newScore = currentUser.score + selectedTreasure.points;
         await supabase
             .from('users')
             .update({ score: newScore })
             .eq('id', currentUser.id);
         
+        // Обновляем локальное состояние
         currentUser.score = newScore;
         userClaims.push(selectedTreasure.id);
         
         document.getElementById('user-score').textContent = newScore;
         updateStats();
         
+        // Звук и вибрация
         if (settings.sound) {
             const sound = document.getElementById('claim-sound');
             if (sound) sound.play().catch(e => {});
@@ -889,11 +835,22 @@ async function claimTreasure() {
             navigator.vibrate([200, 100, 200]);
         }
         
+        // Показываем успех
         document.getElementById('success-message').innerHTML = 
             `Ты заработал <strong>${selectedTreasure.points} очков</strong>!`;
         document.getElementById('success-modal').style.display = 'flex';
         
+        // Обновляем маркер на карте
         await loadTreasures();
+        
+        // Перерисовываем карту
+        const markers = document.querySelectorAll('.treasure-marker');
+        markers.forEach(marker => marker.remove());
+        addTreasuresToMap();
+        
+        // Обновляем кнопку
+        claimBtn.disabled = true;
+        claimBtn.textContent = '✓ Сокровище найдено';
         
         // ПРОВЕРЯЕМ ДОСТИЖЕНИЯ
         await checkAchievements();
@@ -901,6 +858,11 @@ async function claimTreasure() {
     } catch (error) {
         console.error('Claim error:', error);
         alert('Ошибка. Попробуйте снова.');
+        
+        // Возвращаем кнопку в исходное состояние
+        const claimBtn = document.getElementById('claim-btn');
+        claimBtn.disabled = false;
+        claimBtn.textContent = `✨ Забрать сокровище (+${selectedTreasure.points} очков)`;
     }
 }
 
@@ -1042,8 +1004,9 @@ function setupEventListeners() {
         saveSettings();
         
         // Перерисовываем карту
-        map.remove();
-        initMap();
+        const markers = document.querySelectorAll('.treasure-marker');
+        markers.forEach(marker => marker.remove());
+        addTreasuresToMap();
     });
 }
 
