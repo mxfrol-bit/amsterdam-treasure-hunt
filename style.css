@@ -1,17 +1,14 @@
-/* Сброс и базовые стили */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-html, body {
-    height: 100%;
-    width: 100%;
+body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: #1a1a2e;
-    color: #fff;
     overflow: hidden;
+    background: #0a0e27;
+    color: #fff;
 }
 
 /* Loading Screen */
@@ -57,9 +54,9 @@ header {
     right: 0;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 15px 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
     z-index: 1000;
-    height: 70px;
+    backdrop-filter: blur(10px);
 }
 
 .header-content {
@@ -71,6 +68,7 @@ header {
 header h1 {
     font-size: 20px;
     font-weight: 600;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .user-info {
@@ -83,129 +81,301 @@ header h1 {
 .score {
     font-weight: 600;
     margin-top: 2px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 12px;
 }
 
-/* Map - полный экран под header и над bottom-panel */
+/* Map - ПОЛНЫЙ ЭКРАН */
 #map {
-    position: fixed;
-    top: 70px;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1;
-    width: 100%;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 1 !important;
 }
 
-/* Убираем контролы Mapbox */
+#map canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* КАРТА СВЕТЛЕЕ */
+.mapboxgl-canvas {
+    filter: brightness(1.4) contrast(1.15) saturate(1.1) !important;
+}
+
 .mapboxgl-ctrl-bottom-right,
 .mapboxgl-ctrl-bottom-left,
-.mapboxgl-ctrl-top-right,
-.mapboxgl-ctrl-top-left {
-    display: none;
+.mapboxgl-ctrl-logo,
+.mapboxgl-ctrl-attrib,
+.mapboxgl-ctrl {
+    display: none !important;
 }
 
-/* Custom Marker */
+/* Custom Marker - ФИКС РАЗМЕРА */
 .treasure-marker {
-    width: 40px;
-    height: 40px;
+    width: 45px !important;
+    height: 45px !important;
+    min-width: 45px !important;
+    min-height: 45px !important;
+    max-width: 45px !important;
+    max-height: 45px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+    border: 3px solid #fff !important;
+    box-shadow: 
+        0 0 20px rgba(245, 87, 108, 0.6),
+        0 0 40px rgba(240, 147, 251, 0.4) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 24px !important;
+    cursor: pointer !important;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    animation: pulse 2s infinite, float 3s ease-in-out infinite !important;
+    position: relative !important;
+    line-height: 1 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.treasure-marker::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
     border-radius: 50%;
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    border: 3px solid #fff;
-    box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    cursor: pointer;
-    transition: transform 0.2s;
-    animation: pulse 2s infinite;
+    background: radial-gradient(circle, rgba(245, 87, 108, 0.4) 0%, transparent 70%);
+    animation: ripple 2s infinite;
+    z-index: -1;
 }
 
 .treasure-marker:hover {
-    transform: scale(1.1);
+    transform: scale(1.15) rotate(5deg) !important;
+    box-shadow: 
+        0 0 30px rgba(245, 87, 108, 0.8),
+        0 0 60px rgba(240, 147, 251, 0.6) !important;
+}
+
+.treasure-marker:active {
+    transform: scale(0.95) !important;
 }
 
 .treasure-marker.claimed {
-    background: #888;
-    opacity: 0.5;
-    animation: none;
+    background: linear-gradient(135deg, #a8a8a8 0%, #6e6e6e 100%) !important;
+    opacity: 0.6 !important;
+    animation: none !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
 }
 
 @keyframes pulse {
     0%, 100% {
-        box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+        box-shadow: 
+            0 0 20px rgba(245, 87, 108, 0.6),
+            0 0 40px rgba(240, 147, 251, 0.4);
     }
     50% {
-        box-shadow: 0 4px 25px rgba(245, 87, 108, 0.8);
+        box-shadow: 
+            0 0 30px rgba(245, 87, 108, 0.8),
+            0 0 60px rgba(240, 147, 251, 0.6),
+            0 0 80px rgba(245, 87, 108, 0.3);
     }
 }
 
-.user-marker {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #4CAF50;
-    border: 3px solid #fff;
-    box-shadow: 0 2px 10px rgba(76, 175, 80, 0.6);
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
 }
 
-/* Bottom Panel */
+@keyframes ripple {
+    0% {
+        transform: scale(0.8);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+/* User Marker */
+.user-marker {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+    max-width: 22px !important;
+    max-height: 22px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%) !important;
+    border: 3px solid #fff !important;
+    box-shadow: 
+        0 0 15px rgba(76, 175, 80, 0.8),
+        0 2px 10px rgba(0, 0, 0, 0.3) !important;
+    animation: userPulse 1.5s infinite !important;
+}
+
+@keyframes userPulse {
+    0%, 100% {
+        box-shadow: 
+            0 0 15px rgba(76, 175, 80, 0.8),
+            0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+    50% {
+        box-shadow: 
+            0 0 25px rgba(76, 175, 80, 1),
+            0 0 40px rgba(76, 175, 80, 0.5);
+    }
+}
+
+/* Mapbox marker wrapper override */
+.mapboxgl-marker {
+    width: auto !important;
+    height: auto !important;
+}
+
+/* Bottom Panel - ПОВЕРХ КАРТЫ */
 #bottom-panel {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    background: #fff;
-    color: #333;
+    background: linear-gradient(to top, rgba(26, 32, 44, 0.98) 0%, rgba(26, 32, 44, 0.95) 100%);
+    backdrop-filter: blur(20px) saturate(180%);
+    color: #fff;
     border-radius: 20px 20px 0 0;
     padding: 20px;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.5);
     z-index: 1000;
-    max-height: 40vh;
+    max-height: 320px;
     overflow-y: auto;
+    transition: all 0.3s ease;
 }
 
 #bottom-panel h3 {
     font-size: 20px;
     margin-bottom: 10px;
-    color: #667eea;
+    color: #fff;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 #bottom-panel p {
-    color: #666;
-    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
     margin-bottom: 15px;
+}
+
+/* Treasure Image */
+#treasure-image-container {
+    position: relative;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    animation: imageSlideIn 0.4s ease;
+    width: 100%;
+    height: 180px;
+    margin-bottom: 15px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+@keyframes imageSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#treasure-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+#treasure-image:hover {
+    transform: scale(1.05);
+}
+
+#treasure-image-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+    pointer-events: none;
 }
 
 .treasure-distance {
     margin: 15px 0;
-    padding: 10px;
-    background: #f5f5f5;
-    border-radius: 8px;
+    padding: 12px;
+    background: rgba(102, 126, 234, 0.2);
+    border-radius: 10px;
     text-align: center;
     font-weight: 500;
+    color: #fff;
+    border: 1px solid rgba(102, 126, 234, 0.3);
 }
 
 .btn-primary {
     width: 100%;
-    padding: 15px;
+    padding: 16px;
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #fff;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.btn-primary:active::before {
+    width: 300px;
+    height: 300px;
 }
 
 .btn-primary:hover:not(:disabled) {
     transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
 }
 
 .btn-primary:disabled {
-    background: #ccc;
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
     cursor: not-allowed;
+    box-shadow: none;
 }
 
 /* Stats */
@@ -214,7 +384,7 @@ header h1 {
     justify-content: space-around;
     margin-top: 20px;
     padding-top: 20px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .stat {
@@ -223,15 +393,18 @@ header h1 {
 
 .stat-value {
     display: block;
-    font-size: 24px;
-    font-weight: 600;
-    color: #667eea;
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .stat-label {
     display: block;
     font-size: 12px;
-    color: #999;
+    color: rgba(255, 255, 255, 0.6);
     margin-top: 5px;
 }
 
@@ -242,29 +415,196 @@ header h1 {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 2000;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
 .modal-content {
-    background: #fff;
-    padding: 30px;
-    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
+    padding: 35px 30px;
+    border-radius: 24px;
     text-align: center;
-    max-width: 300px;
-    animation: slideUp 0.3s ease;
+    max-width: 340px;
+    width: 90%;
+    animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.3),
+        0 0 100px rgba(102, 126, 234, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.modal-content::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+    animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes slideUp {
     from {
-        transform: translateY(50px);
+        transform: translateY(100px) scale(0.8);
         opacity: 0;
     }
     to {
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
         opacity: 1;
     }
+}
+
+.modal-icon {
+    font-size: 70px;
+    margin-bottom: 20px;
+    animation: bounce 1s ease infinite;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.modal-content h2 {
+    color: #667eea;
+    margin-bottom: 15px;
+    font-size: 26px;
+    position: relative;
+    z-index: 1;
+}
+
+.modal-content p {
+    color: #4a5568;
+    margin-bottom: 25px;
+    line-height: 1.6;
+    font-size: 16px;
+    position: relative;
+    z-index: 1;
+}
+
+.modal-content ul {
+    color: #4a5568;
+    line-height: 1.8;
+    position: relative;
+    z-index: 1;
+}
+
+.modal-content button {
+    position: relative;
+    z-index: 1;
+}
+
+#close-modal {
+    margin-top: 10px;
+}
+
+/* Invite Button */
+#invite-btn {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    padding: 5px;
+}
+
+#invite-btn:active {
+    transform: scale(0.9);
+}
+
+/* Responsive */
+@media (max-height: 700px) {
+    #bottom-panel {
+        max-height: 280px;
+    }
+    
+    .modal-content {
+        padding: 25px 20px;
+        max-width: 300px;
+    }
+    
+    .modal-icon {
+        font-size: 60px;
+    }
+    
+    .modal-content h2 {
+        font-size: 22px;
+    }
+    
+    #treasure-image-container {
+        height: 150px;
+    }
+}
+
+@media (max-height: 600px) {
+    #bottom-panel {
+        max-height: 240px;
+        padding: 15px;
+    }
+    
+    header {
+        padding: 12px 15px;
+    }
+    
+    header h1 {
+        font-size: 18px;
+    }
+    
+    #treasure-image-container {
+        height: 120px;
+    }
+}
+
+/* Scrollbar для панели */
+#bottom-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+#bottom-panel::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+#bottom-panel::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.5);
+    border-radius: 10px;
+}
+
+#bottom-panel::-webkit-scrollbar-thumb:hover {
+    background: rgba(102, 126, 234, 0.7);
 }
