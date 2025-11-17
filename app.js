@@ -19,6 +19,12 @@ let selectedTreasure = null;
 let watchId = null;
 let supabase;
 let currentUser = null;
+let settings = {
+    sound: true,
+    vibration: true,
+    aiImages: true,
+    showAll: true
+};
 
 // ============================================
 // ИНИЦИАЛИЗАЦИЯ
@@ -27,6 +33,9 @@ let currentUser = null;
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+        
+        // Загрузка настроек
+        loadSettings();
         
         const tg = window.Telegram.WebApp;
         tg.ready();
@@ -162,6 +171,11 @@ function addTreasuresToMap() {
     treasures.forEach(treasure => {
         const isClaimed = userClaims.includes(treasure.id);
         
+        // Скрыть найденные, если настройка включена
+        if (isClaimed && !settings.showAll) {
+            return;
+        }
+        
         const el = document.createElement('div');
         el.className = `treasure-marker ${isClaimed ? 'claimed' : ''}`;
         el.innerHTML = isClaimed ? '✓' : (treasure.icon || '💎');
@@ -232,7 +246,11 @@ function handleLocationError(error) {
     }
 }
 
-function selectTreasure(treasure) {
+// ============================================
+// ВЫБОР СОКРОВИЩА
+// ============================================
+
+async function selectTreasure(treasure) {
     selectedTreasure = treasure;
     
     document.getElementById('default-info').style.display = 'none';
@@ -242,24 +260,31 @@ function selectTreasure(treasure) {
         `${treasure.icon || '💎'} ${treasure.name}`;
     document.getElementById('treasure-description').textContent = treasure.description;
     
+    // Обработка изображения
     const imageContainer = document.getElementById('treasure-image-container');
-    const imageElement = document.getElementById('treasure-image');
+    const treasureImage = document.getElementById('treasure-image');
+    const imageLoader = document.getElementById('image-loader');
+    const imagePlaceholder = document.getElementById('image-placeholder');
     
+    // Показываем плейсхолдер
+    imagePlaceholder.style.display = 'block';
+    treasureImage.style.display = 'none';
+    imageLoader.style.display = 'none';
+    
+    // Если есть сохраненная картинка
     if (treasure.image_url) {
-        imageElement.src = treasure.image_url;
-        imageContainer.style.display = 'block';
-    } else {
-        imageContainer.style.display = 'none';
-    }
-    
-    const isClaimed = userClaims.includes(treasure.id);
-    const claimBtn = document.getElementById('claim-btn');
-    
-    if (isClaimed) {
-        claimBtn.textContent = '✓ Уже найдено';
-        claimBtn.disabled = true;
-        document.getElementById('distance-text').textContent = '✓ Сокровище найдено';
-        return;
+        treasureImage.src = treasure.image_url;
+        treasureImage.onload = () => {
+            imagePlaceholder.style.display = 'none';
+            treasureImage.style.display = 'block';
+        };
+    } 
+    // Если включена генерация AI и нет картинки
+    else if (settings.aiImages) {
+        imagePlaceholder.textContent = treasure.icon || '💎';
+        
+        // Генерируем изображение
+        generateAIImage(treasure);
     }
     
     updateDistanceDisplay();
@@ -270,8 +295,106 @@ function selectTreasure(treasure) {
     });
 }
 
+// Закрытие просмотра сокровища
+function closeTreasureView() {
+    document.getElementById('treasure-info').style.display = 'none';
+    document.getElementById('default-info').style.display = 'block';
+    selectedTreasure = null;
+    
+    // Возврат к позиции пользователя
+    if (userLocation) {
+        map.flyTo({
+            center: [userLocation.lng, userLocation.lat],
+            zoom: 15
+        });
+    }
+}
+
+// ============================================
+// AI ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЙ
+// ============================================
+
+async function generateAIImage(treasure) {
+    const imageLoader = document.getElementById('image-loader');
+    const treasureImage = document.getElementById('treasure-image');
+    const imagePlaceholder = document.getElementById('image-placeholder');
+    
+    try {
+        imageLoader.style.display = 'block';
+        imagePlaceholder.style.display = 'none';
+        
+        // Формируем промпт на основе информации о сокровище
+        const prompt = `A beautiful landmark photo of ${treasure.name}, ${treasure.description}. High quality, professional photography, vibrant colors, detailed.`;
+        
+        console.log('Generating AI image with prompt:', prompt);
+        
+        // Используем API Anthropic для генерации изображения через Claude
+        // В реальности можно использовать Stable Diffusion, DALL-E или другие API
+        // Для демонстрации используем заглушку с Unsplash
+        
+        const imageUrl = await fetchUnsplashImage(treasure);
+        
+        if (imageUrl) {
+            treasureImage.src = imageUrl;
+            treasureImage.onload = () => {
+                imageLoader.style.display = 'none';
+                treasureImage.style.display = 'block';
+                
+                // Сохраняем URL в базу данных
+                saveTreasureImage(treasure.id, imageUrl);
+            };
+            
+            treasureImage.onerror = () => {
+                imageLoader.style.display = 'none';
+                imagePlaceholder.style.display = 'block';
+            };
+        } else {
+            throw new Error('Failed to generate image');
+        }
+        
+    } catch (error) {
+        console.error('AI Image generation error:', error);
+        imageLoader.style.display = 'none';
+        imagePlaceholder.style.display = 'block';
+    }
+}
+
+// Получение изображения из Unsplash (заглушка для AI генерации)
+async function fetchUnsplashImage(treasure) {
+    try {
+        // Используем keywords для поиска релевантных изображений
+        const keywords = treasure.name.split(' ').join(',');
+        const response = await fetch(`https://source.unsplash.com/800x600/?${keywords},landmark,architecture`);
+        
+        if (response.ok) {
+            return response.url;
+        }
+        
+        // Fallback на общие изображения города
+        return `https://source.unsplash.com/800x600/?city,architecture`;
+        
+    } catch (error) {
+        console.error('Unsplash error:', error);
+        return null;
+    }
+}
+
+// Сохранение URL изображения в базу
+async function saveTreasureImage(treasureId, imageUrl) {
+    try {
+        await supabase
+            .from('treasures')
+            .update({ image_url: imageUrl })
+            .eq('id', treasureId);
+        
+        console.log('Image URL saved for treasure:', treasureId);
+    } catch (error) {
+        console.error('Error saving image URL:', error);
+    }
+}
+
 function updateDistanceDisplay() {
-    if (!selectedTreasure || !userLocation) return;
+    if (!userLocation || !selectedTreasure) return;
     
     const distance = calculateDistance(
         userLocation.lat,
@@ -283,60 +406,75 @@ function updateDistanceDisplay() {
     const distanceText = document.getElementById('distance-text');
     const claimBtn = document.getElementById('claim-btn');
     
-    distanceText.textContent = `📍 ${Math.round(distance)}м от вас`;
-    
     if (distance <= CONFIG.CLAIM_DISTANCE) {
-        claimBtn.textContent = `🎁 Забрать ${selectedTreasure.points} очков!`;
+        distanceText.textContent = `📍 ${Math.round(distance)}м • Можно забрать!`;
         claimBtn.disabled = false;
-        claimBtn.style.background = 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)';
+        claimBtn.textContent = `✨ Забрать сокровище (+${selectedTreasure.points} очков)`;
     } else {
-        claimBtn.textContent = `🔒 Подойдите ближе (нужно ${CONFIG.CLAIM_DISTANCE}м)`;
+        distanceText.textContent = `📍 ${Math.round(distance)}м • Подойди ближе`;
         claimBtn.disabled = true;
-        claimBtn.style.background = '#ccc';
+        claimBtn.textContent = `🔒 Подойди на ${CONFIG.CLAIM_DISTANCE}м`;
     }
 }
 
 // ============================================
-// СИСТЕМА ДОСТИЖЕНИЙ
+// ДОСТИЖЕНИЯ
 // ============================================
 
 async function checkAchievements() {
     try {
-        const totalClaims = userClaims.length;
-        const totalScore = currentUser.score;
-        
-        console.log(`🏆 Проверка достижений: ${totalClaims} находок, ${totalScore} очков`);
-        
         const { data: allAchievements } = await supabase
             .from('achievements')
             .select('*');
         
-        if (!allAchievements) return;
-        
-        const { data: unlockedAchievements } = await supabase
+        const { data: unlockedData } = await supabase
             .from('user_achievements')
             .select('achievement_id')
             .eq('user_id', currentUser.id);
         
-        const unlockedIds = unlockedAchievements ? unlockedAchievements.map(a => a.achievement_id) : [];
+        const unlockedIds = unlockedData ? unlockedData.map(a => a.achievement_id) : [];
         
         for (const achievement of allAchievements) {
             if (unlockedIds.includes(achievement.id)) continue;
             
             let unlocked = false;
             
-            if (achievement.treasures_required > 0 && totalClaims >= achievement.treasures_required) {
+            if (achievement.code === 'first_treasure' && userClaims.length >= 1) {
                 unlocked = true;
             }
             
-            if (achievement.points_required > 0 && totalScore >= achievement.points_required) {
+            if (achievement.treasures_required > 0 && userClaims.length >= achievement.treasures_required) {
                 unlocked = true;
             }
             
-            if (achievement.code === 'historic_master') {
-                const historicTreasures = treasures.filter(t => t.category === 'historic');
-                const claimedHistoric = historicTreasures.filter(t => userClaims.includes(t.id));
-                if (historicTreasures.length > 0 && claimedHistoric.length === historicTreasures.length) {
+            if (achievement.points_required > 0 && currentUser.score >= achievement.points_required) {
+                unlocked = true;
+            }
+            
+            if (achievement.code === 'speed_demon') {
+                const claims = await getRecentClaims(currentUser.id);
+                if (claims.length >= 3) {
+                    const timeWindow = 60 * 60 * 1000;
+                    const timestamps = claims.map(c => new Date(c.created_at).getTime());
+                    const recentClaims = timestamps.filter(t => Date.now() - t < timeWindow);
+                    if (recentClaims.length >= 3) {
+                        unlocked = true;
+                    }
+                }
+            }
+            
+            if (achievement.code === 'explorer') {
+                const uniqueCategories = new Set(
+                    treasures.filter(t => userClaims.includes(t.id)).map(t => t.category)
+                );
+                if (uniqueCategories.size >= 3) {
+                    unlocked = true;
+                }
+            }
+            
+            if (achievement.code === 'night_owl') {
+                const nightClaims = await getNightClaims(currentUser.id);
+                if (nightClaims.length >= 5) {
                     unlocked = true;
                 }
             }
@@ -356,6 +494,39 @@ async function checkAchievements() {
         
     } catch (error) {
         console.error('Ошибка проверки достижений:', error);
+    }
+}
+
+async function getRecentClaims(userId) {
+    try {
+        const { data } = await supabase
+            .from('claims')
+            .select('created_at')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(10);
+        
+        return data || [];
+    } catch (error) {
+        return [];
+    }
+}
+
+async function getNightClaims(userId) {
+    try {
+        const { data } = await supabase
+            .from('claims')
+            .select('created_at')
+            .eq('user_id', userId);
+        
+        if (!data) return [];
+        
+        return data.filter(claim => {
+            const hour = new Date(claim.created_at).getHours();
+            return hour >= 22 || hour <= 6;
+        });
+    } catch (error) {
+        return [];
     }
 }
 
@@ -403,8 +574,14 @@ function showAchievementNotification(achievement) {
     
     document.body.appendChild(notification);
     
-    const sound = new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3');
-    sound.play().catch(e => {});
+    if (settings.sound) {
+        const sound = new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3');
+        sound.play().catch(e => {});
+    }
+    
+    if (settings.vibration && navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+    }
     
     setTimeout(() => {
         notification.style.animation = 'slideUp 0.5s ease';
@@ -513,8 +690,14 @@ async function claimTreasure() {
         document.getElementById('user-score').textContent = newScore;
         updateStats();
         
-        const sound = document.getElementById('claim-sound');
-        if (sound) sound.play().catch(e => {});
+        if (settings.sound) {
+            const sound = document.getElementById('claim-sound');
+            if (sound) sound.play().catch(e => {});
+        }
+        
+        if (settings.vibration && navigator.vibrate) {
+            navigator.vibrate([200, 100, 200]);
+        }
         
         document.getElementById('success-message').innerHTML = 
             `Ты заработал <strong>${selectedTreasure.points} очков</strong>!`;
@@ -531,14 +714,94 @@ async function claimTreasure() {
     }
 }
 
+// ============================================
+// НАСТРОЙКИ
+// ============================================
+
+function loadSettings() {
+    const saved = localStorage.getItem('app_settings');
+    if (saved) {
+        settings = JSON.parse(saved);
+    }
+    
+    // Применяем настройки к UI
+    document.getElementById('sound-toggle').checked = settings.sound;
+    document.getElementById('vibration-toggle').checked = settings.vibration;
+    document.getElementById('ai-images-toggle').checked = settings.aiImages;
+    document.getElementById('show-all-toggle').checked = settings.showAll;
+}
+
+function saveSettings() {
+    localStorage.setItem('app_settings', JSON.stringify(settings));
+}
+
+function showSettingsModal() {
+    document.getElementById('settings-modal').style.display = 'flex';
+}
+
+// ============================================
+// МЕНЮ
+// ============================================
+
+function toggleMenu() {
+    const menu = document.getElementById('side-menu');
+    const overlay = document.getElementById('menu-overlay');
+    
+    menu.classList.toggle('active');
+    overlay.classList.toggle('active');
+}
+
+function closeMenu() {
+    document.getElementById('side-menu').classList.remove('active');
+    document.getElementById('menu-overlay').classList.remove('active');
+}
+
+// ============================================
+// EVENT LISTENERS
+// ============================================
+
 function setupEventListeners() {
+    // Меню
+    document.getElementById('menu-btn').addEventListener('click', toggleMenu);
+    document.getElementById('close-menu').addEventListener('click', closeMenu);
+    document.getElementById('menu-overlay').addEventListener('click', closeMenu);
+    
+    // Пункты меню
+    document.getElementById('menu-achievements').addEventListener('click', () => {
+        closeMenu();
+        showAchievementsModal();
+    });
+    
+    document.getElementById('menu-settings').addEventListener('click', () => {
+        closeMenu();
+        showSettingsModal();
+    });
+    
+    document.getElementById('menu-profile').addEventListener('click', () => {
+        closeMenu();
+        alert('Профиль (в разработке)');
+    });
+    
+    document.getElementById('menu-leaderboard').addEventListener('click', () => {
+        closeMenu();
+        alert('Таблица лидеров (в разработке)');
+    });
+    
+    document.getElementById('menu-help').addEventListener('click', () => {
+        closeMenu();
+        document.getElementById('onboarding-modal').style.display = 'flex';
+    });
+    
+    // Кнопка закрытия сокровища
+    document.getElementById('close-treasure-btn').addEventListener('click', closeTreasureView);
+    
+    // Забрать сокровище
     document.getElementById('claim-btn').addEventListener('click', claimTreasure);
     
+    // Модалки
     document.getElementById('close-modal').addEventListener('click', () => {
         document.getElementById('success-modal').style.display = 'none';
-        document.getElementById('treasure-info').style.display = 'none';
-        document.getElementById('default-info').style.display = 'block';
-        selectedTreasure = null;
+        closeTreasureView();
     });
     
     document.getElementById('start-hunting').addEventListener('click', () => {
@@ -554,11 +817,39 @@ function setupEventListeners() {
         tg.openTelegramLink(shareUrl);
     });
     
-    // Кнопка достижений
+    // Достижения
     document.getElementById('achievements-btn').addEventListener('click', showAchievementsModal);
-    
     document.getElementById('close-achievements').addEventListener('click', () => {
         document.getElementById('achievements-modal').style.display = 'none';
+    });
+    
+    // Настройки
+    document.getElementById('close-settings').addEventListener('click', () => {
+        document.getElementById('settings-modal').style.display = 'none';
+    });
+    
+    document.getElementById('sound-toggle').addEventListener('change', (e) => {
+        settings.sound = e.target.checked;
+        saveSettings();
+    });
+    
+    document.getElementById('vibration-toggle').addEventListener('change', (e) => {
+        settings.vibration = e.target.checked;
+        saveSettings();
+    });
+    
+    document.getElementById('ai-images-toggle').addEventListener('change', (e) => {
+        settings.aiImages = e.target.checked;
+        saveSettings();
+    });
+    
+    document.getElementById('show-all-toggle').addEventListener('change', (e) => {
+        settings.showAll = e.target.checked;
+        saveSettings();
+        
+        // Перерисовываем карту
+        map.remove();
+        initMap();
     });
 }
 
