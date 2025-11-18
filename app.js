@@ -22,7 +22,6 @@ let currentUser = null;
 let settings = {
     sound: true,
     vibration: true,
-    aiImages: true,
     showAll: true
 };
 
@@ -150,6 +149,10 @@ function updateStats() {
     document.getElementById('remaining-count').textContent = remaining;
 }
 
+// ============================================
+// КАРТА (С ФИКСОМ!)
+// ============================================
+
 function initMap() {
     mapboxgl.accessToken = CONFIG.MAPBOX_TOKEN;
     
@@ -163,6 +166,22 @@ function initMap() {
     
     map.on('load', () => {
         addTreasuresToMap();
+        
+        // ✅ ФИХ: Принудительный ресайз после загрузки
+        setTimeout(() => {
+            map.resize();
+        }, 100);
+    });
+    
+    // ✅ ФИХ: Ресайз при смене ориентации
+    window.addEventListener('resize', () => {
+        if (map) map.resize();
+    });
+    
+    window.addEventListener('orientationchange', () => {
+        setTimeout(() => {
+            if (map) map.resize();
+        }, 200);
     });
 }
 
@@ -245,10 +264,10 @@ function handleLocationError(error) {
 }
 
 // ============================================
-// ВЫБОР СОКРОВИЩА
+// ВЫБОР СОКРОВИЩА (БЕЗ AI-ГЕНЕРАЦИИ)
 // ============================================
 
-async function selectTreasure(treasure) {
+function selectTreasure(treasure) {
     selectedTreasure = treasure;
     
     document.getElementById('default-info').style.display = 'none';
@@ -257,45 +276,19 @@ async function selectTreasure(treasure) {
     document.getElementById('treasure-name').innerHTML = 
         `${treasure.icon || '💎'} ${treasure.name}`;
     
-    // Автогенерация описания из легенды, если его нет
-    if (treasure.legend && (!treasure.description || treasure.description === '')) {
-        treasure.description = generateDescriptionFromLegend(treasure.legend);
-        
-        // Сохраняем в БД
-        await supabase
-            .from('treasures')
-            .update({ description: treasure.description })
-            .eq('id', treasure.id);
-    }
-    
     document.getElementById('treasure-description').textContent = 
         treasure.description || 'Историческая достопримечательность';
     
-    // Обработка изображения
+    // Показываем изображение только если оно есть
     const imageContainer = document.getElementById('treasure-image-container');
     const treasureImage = document.getElementById('treasure-image');
-    const imageLoader = document.getElementById('image-loader');
-    const imagePlaceholder = document.getElementById('image-placeholder');
-    
-    imagePlaceholder.style.display = 'block';
-    treasureImage.style.display = 'none';
-    imageLoader.style.display = 'none';
     
     if (treasure.image_url) {
+        imageContainer.style.display = 'block';
         treasureImage.src = treasure.image_url;
-        treasureImage.onload = () => {
-            imagePlaceholder.style.display = 'none';
-            treasureImage.style.display = 'block';
-        };
-        treasureImage.onerror = () => {
-            if (settings.aiImages) {
-                imagePlaceholder.textContent = treasure.icon || '💎';
-                generateAIImage(treasure);
-            }
-        };
-    } else if (settings.aiImages) {
-        imagePlaceholder.textContent = treasure.icon || '💎';
-        generateAIImage(treasure);
+        treasureImage.style.display = 'block';
+    } else {
+        imageContainer.style.display = 'none';
     }
     
     updateDistanceDisplay();
@@ -316,221 +309,6 @@ function closeTreasureView() {
             center: [userLocation.lng, userLocation.lat],
             zoom: 15
         });
-    }
-}
-
-// ============================================
-// ГЕНЕРАЦИЯ ОПИСАНИЯ ИЗ ЛЕГЕНДЫ (БЕЗ API)
-// ============================================
-
-function generateDescriptionFromLegend(legend) {
-    if (!legend) return 'Историческая достопримечательность';
-    
-    // Берем первые 2 предложения из легенды
-    const sentences = legend
-        .split(/[.!?]+/)
-        .map(s => s.trim())
-        .filter(s => s.length > 10);
-    
-    if (sentences.length === 0) return legend;
-    
-    // Возвращаем первые 1-2 предложения
-    const description = sentences.slice(0, 2).join('. ');
-    return description.endsWith('.') ? description : description + '.';
-}
-
-// ============================================
-// AI-ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЯ
-// ============================================
-
-async function generateAIImage(treasure) {
-    const imageLoader = document.getElementById('image-loader');
-    const treasureImage = document.getElementById('treasure-image');
-    const imagePlaceholder = document.getElementById('image-placeholder');
-    
-    try {
-        console.log('🎨 Начинаем генерацию изображения...');
-        
-        imageLoader.style.display = 'block';
-        imagePlaceholder.style.display = 'none';
-        
-        // Создаем промпт из всех данных
-        const prompt = createImagePrompt(treasure);
-        
-        console.log('📝 Промпт:', prompt);
-        
-        // Генерируем через Pollinations AI
-        const imageUrl = await generateWithPollinations(prompt, treasure.id);
-        
-        if (imageUrl) {
-            console.log('✅ Изображение сгенерировано:', imageUrl);
-            
-            treasureImage.src = imageUrl;
-            treasureImage.onload = () => {
-                console.log('✅ Изображение загружено успешно');
-                imageLoader.style.display = 'none';
-                treasureImage.style.display = 'block';
-                
-                // Сохраняем URL в базу данных
-                saveTreasureImage(treasure.id, imageUrl);
-            };
-            
-            treasureImage.onerror = (e) => {
-                console.error('❌ Ошибка загрузки изображения:', e);
-                imageLoader.style.display = 'none';
-                imagePlaceholder.style.display = 'block';
-            };
-        } else {
-            throw new Error('No image URL generated');
-        }
-        
-    } catch (error) {
-        console.error('❌ AI Image generation error:', error);
-        imageLoader.style.display = 'none';
-        imagePlaceholder.style.display = 'block';
-    }
-}
-
-// Создание промпта для изображения
-function createImagePrompt(treasure) {
-    let parts = [];
-    
-    // 1. Название
-    if (treasure.name) {
-        parts.push(treasure.name);
-    }
-    
-    // 2. Описание
-    if (treasure.description) {
-        parts.push(treasure.description);
-    }
-    
-    // 3. Ключевые слова из легенды
-    if (treasure.legend) {
-        const keywords = extractKeywords(treasure.legend);
-        if (keywords.length > 0) {
-            parts.push(keywords.slice(0, 4).join(', '));
-        }
-    }
-    
-    // 4. Стиль по категории
-    if (treasure.category) {
-        const categoryStyles = {
-            'history': 'historical landmark, ancient architecture, heritage site',
-            'nature': 'natural landscape, scenic beauty, outdoor photography',
-            'culture': 'cultural heritage, traditional, artistic',
-            'modern': 'modern architecture, contemporary, urban design',
-            'architecture': 'architectural masterpiece, building details',
-            'park': 'park landscape, green nature, trees',
-            'church': 'orthodox church, golden domes, religious building',
-            'monument': 'monument, memorial, statue',
-            'museum': 'museum building, cultural institution',
-            'kremlin': 'medieval fortress, stone walls, towers',
-            'river': 'riverbank, waterfront, water view',
-            'square': 'city square, public space, urban plaza'
-        };
-        
-        const style = categoryStyles[treasure.category] || 'landmark';
-        parts.push(style);
-    }
-    
-    // 5. Качество
-    parts.push('professional photography, photorealistic, high quality, detailed, 4k');
-    
-    return parts.filter(p => p && p.length > 0).join(', ');
-}
-
-// Извлечение ключевых слов из легенды
-function extractKeywords(legend) {
-    if (!legend) return [];
-    
-    // Удаляем пунктуацию и разбиваем на слова
-    const words = legend
-        .toLowerCase()
-        .replace(/[.,!?;:()«»""]/g, '')
-        .split(/\s+/)
-        .filter(word => {
-            // Фильтруем короткие и служебные слова
-            const skipWords = ['это', 'был', 'была', 'были', 'будет', 'есть',
-                               'для', 'как', 'что', 'при', 'или', 'его', 'ее', 
-                               'их', 'она', 'они', 'мы', 'вы', 'наш', 'ваш',
-                               'который', 'которая', 'которые', 'этот', 'эта'];
-            return word.length > 4 && !skipWords.includes(word);
-        });
-    
-    // Возвращаем уникальные слова
-    return [...new Set(words)];
-}
-
-// Генерация через Pollinations AI
-async function generateWithPollinations(prompt, treasureId) {
-    try {
-        // Очищаем и кодируем промпт
-        const cleanPrompt = prompt.replace(/\s+/g, ' ').trim();
-        const encodedPrompt = encodeURIComponent(cleanPrompt);
-        
-        // Параметры
-        const width = 800;
-        const height = 600;
-        const seed = treasureId || Math.floor(Math.random() * 100000);
-        
-        // URL для Pollinations AI
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=true&model=flux`;
-        
-        console.log('🌐 URL генерации:', imageUrl);
-        
-        // Проверяем доступность (опционально)
-        try {
-            const response = await fetch(imageUrl, { 
-                method: 'HEAD',
-                mode: 'no-cors'
-            });
-            console.log('📡 Проверка доступности:', response);
-        } catch (e) {
-            console.log('📡 CORS ограничение (это нормально)');
-        }
-        
-        // Возвращаем URL напрямую
-        return imageUrl;
-        
-    } catch (error) {
-        console.error('❌ Pollinations error:', error);
-        
-        // Fallback на Unsplash
-        return await fallbackToUnsplash(prompt);
-    }
-}
-
-// Fallback на Unsplash
-async function fallbackToUnsplash(prompt) {
-    try {
-        console.log('🔄 Fallback на Unsplash');
-        
-        const keywords = prompt
-            .replace(/[.,!?;:()]/g, '')
-            .split(/\s+/)
-            .filter(w => w.length > 4)
-            .slice(0, 6)
-            .join(',');
-        
-        return `https://source.unsplash.com/800x600/?${keywords}`;
-        
-    } catch (error) {
-        console.error('❌ Unsplash fallback error:', error);
-        return null;
-    }
-}
-
-async function saveTreasureImage(treasureId, imageUrl) {
-    try {
-        await supabase
-            .from('treasures')
-            .update({ image_url: imageUrl })
-            .eq('id', treasureId);
-        
-        console.log('💾 Изображение сохранено в БД');
-    } catch (error) {
-        console.error('❌ Error saving image URL:', error);
     }
 }
 
@@ -852,7 +630,6 @@ function loadSettings() {
         if (document.getElementById('sound-toggle')) {
             document.getElementById('sound-toggle').checked = settings.sound;
             document.getElementById('vibration-toggle').checked = settings.vibration;
-            document.getElementById('ai-images-toggle').checked = settings.aiImages;
             document.getElementById('show-all-toggle').checked = settings.showAll;
         }
     }, 100);
@@ -867,70 +644,24 @@ function showSettingsModal() {
 }
 
 // ============================================
-// МЕНЮ
-// ============================================
-
-function toggleMenu() {
-    const menu = document.getElementById('side-menu');
-    const overlay = document.getElementById('menu-overlay');
-    
-    menu.classList.toggle('active');
-    overlay.classList.toggle('active');
-}
-
-function closeMenu() {
-    document.getElementById('side-menu').classList.remove('active');
-    document.getElementById('menu-overlay').classList.remove('active');
-}
-
-// ============================================
 // EVENT LISTENERS
 // ============================================
 
 function setupEventListeners() {
-    document.getElementById('menu-btn').addEventListener('click', toggleMenu);
-    document.getElementById('close-menu').addEventListener('click', closeMenu);
-    document.getElementById('menu-overlay').addEventListener('click', closeMenu);
+    document.getElementById('close-treasure-btn')?.addEventListener('click', closeTreasureView);
+    document.getElementById('claim-btn')?.addEventListener('click', claimTreasure);
     
-    document.getElementById('menu-achievements').addEventListener('click', () => {
-        closeMenu();
-        showAchievementsModal();
-    });
-    
-    document.getElementById('menu-settings').addEventListener('click', () => {
-        closeMenu();
-        showSettingsModal();
-    });
-    
-    document.getElementById('menu-profile').addEventListener('click', () => {
-        closeMenu();
-        alert('Профиль (в разработке)');
-    });
-    
-    document.getElementById('menu-leaderboard').addEventListener('click', () => {
-        closeMenu();
-        alert('Таблица лидеров (в разработке)');
-    });
-    
-    document.getElementById('menu-help').addEventListener('click', () => {
-        closeMenu();
-        document.getElementById('onboarding-modal').style.display = 'flex';
-    });
-    
-    document.getElementById('close-treasure-btn').addEventListener('click', closeTreasureView);
-    document.getElementById('claim-btn').addEventListener('click', claimTreasure);
-    
-    document.getElementById('close-modal').addEventListener('click', () => {
+    document.getElementById('close-modal')?.addEventListener('click', () => {
         document.getElementById('success-modal').style.display = 'none';
         closeTreasureView();
     });
     
-    document.getElementById('start-hunting').addEventListener('click', () => {
+    document.getElementById('start-hunting')?.addEventListener('click', () => {
         localStorage.setItem('onboarding_seen', 'true');
         document.getElementById('onboarding-modal').style.display = 'none';
     });
     
-    document.getElementById('invite-btn').addEventListener('click', () => {
+    document.getElementById('invite-btn')?.addEventListener('click', () => {
         const tg = window.Telegram.WebApp;
         const shareText = encodeURIComponent('Найди сокровища в Нижнем Новгороде! 💎🗺️');
         const shareUrl = `https://t.me/share/url?url=https://t.me/${CONFIG.BOT_USERNAME}&text=${shareText}`;
@@ -938,31 +669,22 @@ function setupEventListeners() {
         tg.openTelegramLink(shareUrl);
     });
     
-    document.getElementById('achievements-btn').addEventListener('click', showAchievementsModal);
-    document.getElementById('close-achievements').addEventListener('click', () => {
+    document.getElementById('achievements-btn')?.addEventListener('click', showAchievementsModal);
+    document.getElementById('close-achievements')?.addEventListener('click', () => {
         document.getElementById('achievements-modal').style.display = 'none';
     });
     
-    document.getElementById('close-settings').addEventListener('click', () => {
-        document.getElementById('settings-modal').style.display = 'none';
-    });
-    
-    document.getElementById('sound-toggle').addEventListener('change', (e) => {
+    document.getElementById('sound-toggle')?.addEventListener('change', (e) => {
         settings.sound = e.target.checked;
         saveSettings();
     });
     
-    document.getElementById('vibration-toggle').addEventListener('change', (e) => {
+    document.getElementById('vibration-toggle')?.addEventListener('change', (e) => {
         settings.vibration = e.target.checked;
         saveSettings();
     });
     
-    document.getElementById('ai-images-toggle').addEventListener('change', (e) => {
-        settings.aiImages = e.target.checked;
-        saveSettings();
-    });
-    
-    document.getElementById('show-all-toggle').addEventListener('change', (e) => {
+    document.getElementById('show-all-toggle')?.addEventListener('change', (e) => {
         settings.showAll = e.target.checked;
         saveSettings();
         
