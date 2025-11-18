@@ -81,7 +81,11 @@ async function initUser(telegramUser) {
             .eq('telegram_id', telegramUser.id)
             .single();
         
-        if (existingUser) return existingUser;
+        if (existingUser) {
+            // Проверяем является ли пользователь админом
+            await checkIfAdmin(telegramUser.id);
+            return existingUser;
+        }
         
         const { data: newUser } = await supabase
             .from('users')
@@ -93,6 +97,9 @@ async function initUser(telegramUser) {
             .select()
             .single();
         
+        // Проверяем является ли новый пользователь админом
+        await checkIfAdmin(telegramUser.id);
+        
         return newUser || {
             id: 1,
             telegram_id: telegramUser.id,
@@ -101,12 +108,112 @@ async function initUser(telegramUser) {
         };
         
     } catch (error) {
+        await checkIfAdmin(telegramUser.id);
         return {
             id: 1,
             telegram_id: telegramUser.id,
             username: telegramUser.username || 'TestUser',
             score: 0
         };
+    }
+}
+
+// Проверка является ли пользователь админом
+async function checkIfAdmin(telegramId) {
+    try {
+        const { data: admin } = await supabase
+            .from('admins')
+            .select('*')
+            .eq('telegram_id', telegramId)
+            .single();
+        
+        if (admin) {
+            // Пользователь - админ! Показываем кнопку админки
+            showAdminButton();
+        }
+    } catch (error) {
+        // Не админ - ничего не делаем
+    }
+}
+
+// Показываем кнопку админки
+function showAdminButton() {
+    const adminBtn = document.createElement('button');
+    adminBtn.id = 'admin-btn';
+    adminBtn.innerHTML = '⚙️';
+    adminBtn.style.cssText = `
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border: 3px solid #fff;
+        border-radius: 50%;
+        font-size: 28px;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(245, 87, 108, 0.5);
+        z-index: 2000;
+        transition: all 0.3s;
+    `;
+    
+    adminBtn.addEventListener('click', () => {
+        openAdmin();
+    });
+    
+    adminBtn.addEventListener('mouseenter', () => {
+        adminBtn.style.transform = 'scale(1.1) rotate(90deg)';
+    });
+    
+    adminBtn.addEventListener('mouseleave', () => {
+        adminBtn.style.transform = 'scale(1) rotate(0deg)';
+    });
+    
+    document.body.appendChild(adminBtn);
+}
+
+// Открываем админку
+function openAdmin() {
+    const tg = window.Telegram.WebApp;
+    
+    // URL вашей админки (замените на реальный после деплоя)
+    const adminUrl = 'https://ваш-проект.vercel.app/admin.html';
+    
+    // Открываем админку в новом окне или через Telegram
+    if (tg && tg.openLink) {
+        tg.openLink(adminUrl);
+    } else {
+        window.open(adminUrl, '_blank');
+    }
+}
+
+// ============================================
+// ПРОВЕРКА ПРАВ АДМИНИСТРАТОРА
+// ============================================
+
+async function checkIfAdmin(telegramId) {
+    try {
+        const { data: admin } = await supabase
+            .from('admins')
+            .select('*')
+            .eq('telegram_id', telegramId)
+            .single();
+        
+        if (admin) {
+            console.log('🎯 Обнаружен админ:', admin.username || admin.telegram_id);
+            // Показываем админскую кнопку в меню
+            const adminBtn = document.getElementById('menu-admin');
+            if (adminBtn) {
+                adminBtn.style.display = 'flex';
+            }
+            return true;
+        }
+        
+        return false;
+        
+    } catch (error) {
+        // Пользователь не админ - это нормально
+        return false;
     }
 }
 
@@ -692,6 +799,36 @@ function setupEventListeners() {
         markers.forEach(marker => marker.remove());
         addTreasuresToMap();
     });
+    
+    // Админская кнопка
+    document.getElementById('menu-admin')?.addEventListener('click', () => {
+        closeMenu();
+        // Открываем админку
+        const tg = window.Telegram.WebApp;
+        // Пробуем открыть на том же домене
+        const adminUrl = window.location.origin + '/admin.html';
+        console.log('Открываем админку:', adminUrl);
+        
+        // Открываем через Telegram WebApp
+        tg.openLink(adminUrl, { try_instant_view: true });
+    });
+}
+
+// ============================================
+// МЕНЮ
+// ============================================
+
+function toggleMenu() {
+    const menu = document.getElementById('side-menu');
+    const overlay = document.getElementById('menu-overlay');
+    
+    menu.classList.toggle('active');
+    overlay.classList.toggle('active');
+}
+
+function closeMenu() {
+    document.getElementById('side-menu').classList.remove('active');
+    document.getElementById('menu-overlay').classList.remove('active');
 }
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
