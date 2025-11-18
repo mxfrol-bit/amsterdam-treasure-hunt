@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Админ-панель • Охота за сокровищами</title>
     
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
@@ -16,6 +19,78 @@
             background: #0a0e27;
             color: #fff;
             padding: 20px;
+        }
+        
+        /* Экран проверки доступа */
+        #access-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        
+        .access-box {
+            background: #1a202c;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .access-box h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+        
+        .access-box p {
+            color: #888;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-box {
+            background: rgba(245, 101, 101, 0.1);
+            border: 2px solid #f56565;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+        
+        .error-box h2 {
+            color: #f56565;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
         }
         
         .container { max-width: 1400px; margin: 0 auto; }
@@ -86,11 +161,6 @@
         
         .btn-danger {
             background: #f56565;
-            color: #fff;
-        }
-        
-        .btn-success {
-            background: #48bb78;
             color: #fff;
         }
         
@@ -205,70 +275,95 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🎯 Админ-панель</h1>
-            <p>Управление точками и статистика</p>
-        </header>
-        
-        <!-- Статистика -->
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-value" id="total-treasures">0</div>
-                <div class="stat-label">Всего точек</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="active-treasures">0</div>
-                <div class="stat-label">Активных</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="total-users">0</div>
-                <div class="stat-label">Пользователей</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="total-claims">0</div>
-                <div class="stat-label">Находок</div>
-            </div>
+    <!-- Экран проверки доступа -->
+    <div id="access-screen">
+        <div class="access-box">
+            <h1>🔐 Проверка доступа</h1>
+            <p>Проверяем права администратора...</p>
+            <div class="loader"></div>
+            <p id="access-status" style="margin-top: 20px;"></p>
         </div>
-        
-        <!-- Управление точками -->
-        <div class="section">
-            <h2>📍 Управление точками</h2>
-            <button class="btn btn-primary" onclick="showAddModal()">+ Добавить точку</button>
+    </div>
+    
+    <!-- Основной контент (скрыт до проверки) -->
+    <div id="admin-content" style="display: none;">
+        <div class="container">
+            <header>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1>🎯 Админ-панель</h1>
+                        <p>Управление точками и статистика</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 14px; color: rgba(255,255,255,0.7); margin-bottom: 5px;">
+                            Админ: <span id="admin-username"></span>
+                        </div>
+                        <div style="font-size: 12px; color: rgba(255,255,255,0.5);">
+                            ID: <span id="admin-id"></span>
+                        </div>
+                    </div>
+                </div>
+            </header>
             
-            <div id="treasures-loading" class="loading">Загрузка...</div>
-            <table id="treasures-table" style="display: none;">
-                <thead>
-                    <tr>
-                        <th>Иконка</th>
-                        <th>Название</th>
-                        <th>Категория</th>
-                        <th>Очки</th>
-                        <th>Статус</th>
-                        <th>Описание</th>
-                        <th>Изображение</th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody id="treasures-list"></tbody>
-            </table>
-        </div>
-        
-        <!-- Топ пользователей -->
-        <div class="section">
-            <h2>🏆 Топ пользователей</h2>
-            <div id="users-loading" class="loading">Загрузка...</div>
-            <table id="users-table" style="display: none;">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Пользователь</th>
-                        <th>Очки</th>
-                        <th>Найдено</th>
-                    </tr>
-                </thead>
-                <tbody id="users-list"></tbody>
-            </table>
+            <!-- Статистика -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-treasures">0</div>
+                    <div class="stat-label">Всего точек</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="active-treasures">0</div>
+                    <div class="stat-label">Активных</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-users">0</div>
+                    <div class="stat-label">Пользователей</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-claims">0</div>
+                    <div class="stat-label">Находок</div>
+                </div>
+            </div>
+            
+            <!-- Управление точками -->
+            <div class="section">
+                <h2>📍 Управление точками</h2>
+                <button class="btn btn-primary" onclick="showAddModal()">+ Добавить точку</button>
+                
+                <div id="treasures-loading" class="loading">Загрузка...</div>
+                <table id="treasures-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Иконка</th>
+                            <th>Название</th>
+                            <th>Категория</th>
+                            <th>Очки</th>
+                            <th>Статус</th>
+                            <th>Описание</th>
+                            <th>Изображение</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="treasures-list"></tbody>
+                </table>
+            </div>
+            
+            <!-- Топ пользователей -->
+            <div class="section">
+                <h2>🏆 Топ пользователей</h2>
+                <div id="users-loading" class="loading">Загрузка...</div>
+                <table id="users-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Пользователь</th>
+                            <th>Очки</th>
+                            <th>Найдено</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-list"></tbody>
+                </table>
+            </div>
         </div>
     </div>
     
@@ -290,12 +385,12 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>Легенда *</label>
+                    <label>Легенда * (для AI-генерации)</label>
                     <textarea id="legend" required placeholder="Историческая справка..."></textarea>
                 </div>
                 
                 <div class="form-group">
-                    <label>Описание (авто-генерируется из легенды)</label>
+                    <label>Описание (авто-генерируется)</label>
                     <textarea id="description" placeholder="Будет сгенерировано автоматически..."></textarea>
                 </div>
                 
@@ -353,6 +448,10 @@
     </div>
     
     <script>
+        // ============================================
+        // КОНФИГУРАЦИЯ
+        // ============================================
+        
         const CONFIG = {
             SUPABASE_URL: 'https://otvtqoowhupqxushkmma.supabase.co',
             SUPABASE_KEY: 'sb_publishable_yeG_VzvaJW-0Pxikgrup7g_cYZXKLfn'
@@ -360,11 +459,107 @@
         
         let supabase;
         let treasures = [];
+        let currentAdmin = null;
+        
+        // ============================================
+        // ПРОВЕРКА ПРАВ АДМИНИСТРАТОРА
+        // ============================================
+        
+        async function checkAdminAccess() {
+            try {
+                const tg = window.Telegram.WebApp;
+                tg.ready();
+                tg.expand();
+                
+                const telegramUser = tg.initDataUnsafe?.user;
+                
+                if (!telegramUser || !telegramUser.id) {
+                    showAccessDenied('Откройте админку через Telegram бот!');
+                    return false;
+                }
+                
+                document.getElementById('access-status').textContent = 
+                    `Проверяем пользователя @${telegramUser.username || telegramUser.id}...`;
+                
+                // Инициализируем Supabase
+                supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+                
+                // Проверяем есть ли пользователь в таблице admins
+                const { data: admin, error } = await supabase
+                    .from('admins')
+                    .select('*')
+                    .eq('telegram_id', telegramUser.id)
+                    .single();
+                
+                if (error || !admin) {
+                    showAccessDenied(
+                        `Доступ запрещён!`,
+                        `У пользователя @${telegramUser.username || telegramUser.id} (ID: ${telegramUser.id}) нет прав администратора.`,
+                        telegramUser.id
+                    );
+                    return false;
+                }
+                
+                // Успешная авторизация
+                currentAdmin = {
+                    ...admin,
+                    telegram_username: telegramUser.username
+                };
+                
+                document.getElementById('admin-username').textContent = 
+                    '@' + (telegramUser.username || 'admin');
+                document.getElementById('admin-id').textContent = telegramUser.id;
+                
+                // Показываем админку
+                document.getElementById('access-screen').style.display = 'none';
+                document.getElementById('admin-content').style.display = 'block';
+                
+                // Загружаем данные
+                await loadData();
+                
+                return true;
+                
+            } catch (error) {
+                console.error('Ошибка проверки доступа:', error);
+                showAccessDenied('Ошибка проверки доступа', error.message);
+                return false;
+            }
+        }
+        
+        function showAccessDenied(title, message, telegramId) {
+            const accessBox = document.querySelector('.access-box');
+            accessBox.innerHTML = `
+                <div class="error-box">
+                    <h2>❌ ${title}</h2>
+                    <p>${message || ''}</p>
+                    ${telegramId ? `
+                        <hr style="margin: 20px 0; border: none; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <p style="font-size: 14px; text-align: left;">
+                            <strong>Как получить доступ:</strong><br><br>
+                            1. Откройте Supabase Dashboard<br>
+                            2. SQL Editor<br>
+                            3. Выполните запрос:<br>
+                            <code style="display: block; margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 5px; font-size: 12px;">
+                                INSERT INTO admins (telegram_id, username)<br>
+                                VALUES (${telegramId}, 'admin');
+                            </code>
+                        </p>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        // ============================================
+        // ИНИЦИАЛИЗАЦИЯ
+        // ============================================
         
         document.addEventListener('DOMContentLoaded', async () => {
-            supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
-            await loadData();
+            await checkAdminAccess();
         });
+        
+        // ============================================
+        // ЗАГРУЗКА ДАННЫХ
+        // ============================================
         
         async function loadData() {
             await loadStats();
@@ -469,6 +664,10 @@
                 console.error('Error loading users:', error);
             }
         }
+        
+        // ============================================
+        // CRUD ОПЕРАЦИИ
+        // ============================================
         
         function showAddModal() {
             document.getElementById('modal-title').textContent = 'Добавить точку';
