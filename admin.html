@@ -469,40 +469,89 @@
         
         async function checkAdminAccess() {
             try {
+                console.log('🔍 Начинаем проверку доступа...');
+                
                 const tg = window.Telegram.WebApp;
                 tg.ready();
                 tg.expand();
                 
+                console.log('📱 Telegram WebApp инициализирован');
+                console.log('📊 initDataUnsafe:', tg.initDataUnsafe);
+                
                 const telegramUser = tg.initDataUnsafe?.user;
                 
                 if (!telegramUser || !telegramUser.id) {
-                    showAccessDenied('Откройте админку через Telegram бот!');
+                    console.error('❌ Telegram user не найден!');
+                    console.log('initDataUnsafe:', tg.initDataUnsafe);
+                    
+                    showAccessDenied(
+                        'Ошибка авторизации',
+                        'Не удалось получить данные пользователя из Telegram. Попробуйте перезапустить бот.'
+                    );
                     return false;
                 }
                 
+                console.log('✅ Telegram user:', telegramUser);
+                console.log('🆔 ID:', telegramUser.id);
+                console.log('👤 Username:', telegramUser.username);
+                
                 document.getElementById('access-status').textContent = 
-                    `Проверяем пользователя @${telegramUser.username || telegramUser.id}...`;
+                    `Проверяем ID: ${telegramUser.id}...`;
                 
                 // Инициализируем Supabase
+                console.log('💾 Инициализация Supabase...');
                 supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+                console.log('✅ Supabase инициализирован');
+                
+                document.getElementById('access-status').textContent = 
+                    `Проверяем права в базе данных...`;
                 
                 // Проверяем есть ли пользователь в таблице admins
+                console.log('🔎 Ищем админа с ID:', telegramUser.id);
+                
                 const { data: admin, error } = await supabase
                     .from('admins')
                     .select('*')
                     .eq('telegram_id', telegramUser.id)
                     .single();
                 
-                if (error || !admin) {
+                console.log('📊 Результат запроса:');
+                console.log('  data:', admin);
+                console.log('  error:', error);
+                
+                if (error) {
+                    console.error('❌ Ошибка запроса:', error);
+                    
+                    if (error.code === 'PGRST116') {
+                        // Записи не найдено
+                        showAccessDenied(
+                            `Доступ запрещён!`,
+                            `Пользователь с ID ${telegramUser.id} не является администратором.`,
+                            telegramUser.id
+                        );
+                    } else {
+                        showAccessDenied(
+                            'Ошибка базы данных',
+                            `${error.message}\n\nПроверьте что таблица 'admins' создана в Supabase.`
+                        );
+                    }
+                    return false;
+                }
+                
+                if (!admin) {
+                    console.error('❌ Админ не найден');
                     showAccessDenied(
                         `Доступ запрещён!`,
-                        `У пользователя @${telegramUser.username || telegramUser.id} (ID: ${telegramUser.id}) нет прав администратора.`,
+                        `Пользователь с ID ${telegramUser.id} не является администратором.`,
                         telegramUser.id
                     );
                     return false;
                 }
                 
                 // Успешная авторизация
+                console.log('🎉 Успешная авторизация!');
+                console.log('👤 Админ:', admin);
+                
                 currentAdmin = {
                     ...admin,
                     telegram_username: telegramUser.username
@@ -516,14 +565,23 @@
                 document.getElementById('access-screen').style.display = 'none';
                 document.getElementById('admin-content').style.display = 'block';
                 
+                console.log('📊 Загружаем данные...');
+                
                 // Загружаем данные
                 await loadData();
+                
+                console.log('✅ Админка загружена!');
                 
                 return true;
                 
             } catch (error) {
-                console.error('Ошибка проверки доступа:', error);
-                showAccessDenied('Ошибка проверки доступа', error.message);
+                console.error('💥 Критическая ошибка:', error);
+                console.error('Stack:', error.stack);
+                
+                showAccessDenied(
+                    'Критическая ошибка', 
+                    `${error.message}\n\nОткройте консоль браузера (F12) для подробностей.`
+                );
                 return false;
             }
         }
