@@ -454,7 +454,9 @@
         
         const CONFIG = {
             SUPABASE_URL: 'https://otvtqoowhupqxushkmma.supabase.co',
-            SUPABASE_KEY: 'sb_publishable_yeG_VzvaJW-0Pxikgrup7g_cYZXKLfn'
+            // ⚠️ Используем anon key - он безопасен для публичного использования
+            // Права записи настраиваются через RLS политики в Supabase
+            SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90dnRxb293aHVwcXh1c2hrbW1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE3Nzk0MzYsImV4cCI6MjA0NzM1NTQzNn0.tLD7_vCWW_c6TmmJp7T1kCUuR7iB8xNAiZ3Cq1qkSuY'
         };
         
         let supabase;
@@ -717,21 +719,104 @@
                 active: document.getElementById('active').checked
             };
             
+            console.log('📝 Сохраняем данные:', data);
+            
             try {
+                let result;
+                
                 if (id) {
-                    await supabase.from('treasures').update(data).eq('id', id);
-                    alert('Точка обновлена!');
+                    // Обновление существующей точки
+                    console.log('🔄 Обновляем точку ID:', id);
+                    result = await supabase
+                        .from('treasures')
+                        .update(data)
+                        .eq('id', id)
+                        .select();
+                    
+                    console.log('📡 Ответ от Supabase:', result);
+                    
+                    if (result.error) {
+                        console.error('❌ Ошибка Supabase:', result.error);
+                        throw new Error(`Supabase error: ${result.error.message}\nCode: ${result.error.code}\nDetails: ${result.error.details}`);
+                    }
+                    
+                    if (!result.data || result.data.length === 0) {
+                        throw new Error('Точка не найдена или не обновлена');
+                    }
+                    
+                    console.log('✅ Точка обновлена:', result.data);
+                    alert('✅ Точка успешно обновлена!');
+                    
                 } else {
-                    await supabase.from('treasures').insert([data]);
-                    alert('Точка добавлена!');
+                    // Добавление новой точки
+                    console.log('➕ Добавляем новую точку');
+                    result = await supabase
+                        .from('treasures')
+                        .insert([data])
+                        .select();
+                    
+                    console.log('📡 Ответ от Supabase:', result);
+                    
+                    if (result.error) {
+                        console.error('❌ Ошибка Supabase:', result.error);
+                        throw new Error(`Supabase error: ${result.error.message}\nCode: ${result.error.code}`);
+                    }
+                    
+                    console.log('✅ Точка добавлена:', result.data);
+                    alert('✅ Точка успешно добавлена!');
                 }
                 
                 closeModal();
                 await loadData();
                 
             } catch (error) {
-                console.error('Error saving treasure:', error);
-                alert('Ошибка при сохранении');
+                console.error('❌ Критическая ошибка:', error);
+                
+                // Детальное сообщение об ошибке
+                let errorMessage = 'Ошибка при сохранении!\n\n';
+                errorMessage += error.message || 'Неизвестная ошибка';
+                
+                // Проверка типичных проблем
+                if (error.message && error.message.includes('permission')) {
+                    errorMessage += '\n\n🔒 Проблема: Нет прав доступа';
+                    errorMessage += '\n\nРешение:';
+                    errorMessage += '\n1. Откройте Supabase Dashboard';
+                    errorMessage += '\n2. SQL Editor';
+                    errorMessage += '\n3. Выполните:\n   ALTER TABLE treasures DISABLE ROW LEVEL SECURITY;';
+                } else if (error.message && error.message.includes('JWT')) {
+                    errorMessage += '\n\n🔐 Проблема: Неправильный ключ API';
+                } else if (error.message && error.message.includes('network')) {
+                    errorMessage += '\n\n🌐 Проблема: Нет интернета';
+                }
+                
+                alert(errorMessage);
+            }
+        }
+                    
+                } else {
+                    // Добавление новой точки
+                    console.log('Добавляем новую точку');
+                    result = await supabase
+                        .from('treasures')
+                        .insert([data])
+                        .select(); // ✅ Важно! Возвращаем добавленные данные
+                    
+                    if (result.error) {
+                        throw result.error;
+                    }
+                    
+                    console.log('✅ Точка добавлена:', result.data);
+                    alert('✅ Точка успешно добавлена!');
+                }
+                
+                closeModal();
+                await loadData();
+                
+            } catch (error) {
+                console.error('❌ Ошибка сохранения:', error);
+                alert('❌ Ошибка при сохранении!\n\n' + 
+                      'Детали: ' + (error.message || JSON.stringify(error)) + 
+                      '\n\nПроверьте консоль (F12) для подробностей.');
             }
         }
         
