@@ -21,8 +21,8 @@
             padding: 20px;
         }
         
-        /* Экран проверки доступа */
-        #access-screen {
+        /* Экран авторизации */
+        #auth-screen {
             position: fixed;
             top: 0;
             left: 0;
@@ -35,7 +35,7 @@
             z-index: 10000;
         }
         
-        .access-box {
+        .auth-box {
             background: #1a202c;
             padding: 40px;
             border-radius: 20px;
@@ -45,15 +45,15 @@
             text-align: center;
         }
         
-        .access-box h1 {
+        .auth-box h1 {
             font-size: 28px;
             margin-bottom: 10px;
             color: #667eea;
         }
         
-        .access-box p {
+        .auth-box p {
             color: #888;
-            margin-bottom: 20px;
+            margin: 20px 0;
             line-height: 1.6;
         }
         
@@ -82,6 +82,20 @@
         
         .error-box h2 {
             color: #f56565;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .success-box {
+            background: rgba(72, 187, 120, 0.1);
+            border: 2px solid #48bb78;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+        
+        .success-box h2 {
+            color: #48bb78;
             font-size: 20px;
             margin-bottom: 10px;
         }
@@ -275,17 +289,17 @@
     </style>
 </head>
 <body>
-    <!-- Экран проверки доступа -->
-    <div id="access-screen">
-        <div class="access-box">
-            <h1>🔐 Проверка доступа</h1>
-            <p>Проверяем права администратора...</p>
+    <!-- Экран авторизации -->
+    <div id="auth-screen">
+        <div class="auth-box">
+            <h1>🔐 Авторизация</h1>
+            <p>Проверяем права доступа...</p>
             <div class="loader"></div>
-            <p id="access-status" style="margin-top: 20px;"></p>
+            <p id="auth-status" style="margin-top: 20px; font-size: 14px; color: #888;"></p>
         </div>
     </div>
     
-    <!-- Основной контент (скрыт до проверки) -->
+    <!-- Основной контент (скрыт до авторизации) -->
     <div id="admin-content" style="display: none;">
         <div class="container">
             <header>
@@ -385,18 +399,18 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>Легенда * (для AI-генерации)</label>
+                    <label>Легенда *</label>
                     <textarea id="legend" required placeholder="Историческая справка..."></textarea>
                 </div>
                 
                 <div class="form-group">
-                    <label>Описание (авто-генерируется)</label>
-                    <textarea id="description" placeholder="Будет сгенерировано автоматически..."></textarea>
+                    <label>Описание</label>
+                    <textarea id="description" placeholder="Краткое описание..."></textarea>
                 </div>
                 
                 <div class="form-group">
-                    <label>URL изображения (авто-генерируется)</label>
-                    <input type="text" id="image_url" placeholder="Будет сгенерирован автоматически">
+                    <label>URL изображения</label>
+                    <input type="text" id="image_url" placeholder="https://...">
                 </div>
                 
                 <div class="form-group">
@@ -454,9 +468,16 @@
         
         const CONFIG = {
             SUPABASE_URL: 'https://otvtqoowhupqxushkmma.supabase.co',
-            // ⚠️ Используем anon key - он безопасен для публичного использования
-            // Права записи настраиваются через RLS политики в Supabase
-            SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90dnRxb293aHVwcXh1c2hrbW1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE3Nzk0MzYsImV4cCI6MjA0NzM1NTQzNn0.tLD7_vCWW_c6TmmJp7T1kCUuR7iB8xNAiZ3Cq1qkSuY'
+            SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90dnRxb293aHVwcXh1c2hrbW1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE3Nzk0MzYsImV4cCI6MjA0NzM1NTQzNn0.tLD7_vCWW_c6TmmJp7T1kCUuR7iB8xNAiZ3Cq1qkSuY',
+            
+            // 🔑 СПИСОК АДМИНОВ (Telegram ID)
+            // ⚠️ ИЗМЕНИТЕ НА СВОИ ID!
+            ADMIN_IDS: [
+                562890944  // Ваш ID
+                // Добавьте других админов здесь:
+                // 123456789,
+                // 987654321
+            ]
         };
         
         let supabase;
@@ -464,158 +485,129 @@
         let currentAdmin = null;
         
         // ============================================
-        // ПРОВЕРКА ПРАВ АДМИНИСТРАТОРА
+        // АВТОРИЗАЦИЯ ЧЕРЕЗ TELEGRAM
         // ============================================
         
-        async function checkAdminAccess() {
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkTelegramAuth();
+        });
+        
+        async function checkTelegramAuth() {
             try {
-                console.log('🔍 Начинаем проверку доступа...');
+                console.log('🔍 Начинаем авторизацию...');
+                
+                document.getElementById('auth-status').textContent = 'Инициализация Telegram...';
                 
                 const tg = window.Telegram.WebApp;
                 tg.ready();
                 tg.expand();
                 
-                console.log('📱 Telegram WebApp инициализирован');
+                console.log('📱 Telegram WebApp:', tg);
                 console.log('📊 initDataUnsafe:', tg.initDataUnsafe);
                 
                 const telegramUser = tg.initDataUnsafe?.user;
                 
                 if (!telegramUser || !telegramUser.id) {
                     console.error('❌ Telegram user не найден!');
-                    console.log('initDataUnsafe:', tg.initDataUnsafe);
-                    
-                    showAccessDenied(
+                    showError(
                         'Ошибка авторизации',
-                        'Не удалось получить данные пользователя из Telegram. Попробуйте перезапустить бот.'
+                        'Не удалось получить данные из Telegram. Откройте админку через Telegram бот!'
                     );
-                    return false;
+                    return;
                 }
                 
                 console.log('✅ Telegram user:', telegramUser);
                 console.log('🆔 ID:', telegramUser.id);
                 console.log('👤 Username:', telegramUser.username);
                 
-                document.getElementById('access-status').textContent = 
+                document.getElementById('auth-status').textContent = 
                     `Проверяем ID: ${telegramUser.id}...`;
                 
-                // Инициализируем Supabase
-                console.log('💾 Инициализация Supabase...');
-                supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
-                console.log('✅ Supabase инициализирован');
-                
-                document.getElementById('access-status').textContent = 
-                    `Проверяем права в базе данных...`;
-                
-                // Проверяем есть ли пользователь в таблице admins
-                console.log('🔎 Ищем админа с ID:', telegramUser.id);
-                
-                const { data: admin, error } = await supabase
-                    .from('admins')
-                    .select('*')
-                    .eq('telegram_id', telegramUser.id)
-                    .single();
-                
-                console.log('📊 Результат запроса:');
-                console.log('  data:', admin);
-                console.log('  error:', error);
-                
-                if (error) {
-                    console.error('❌ Ошибка запроса:', error);
-                    
-                    if (error.code === 'PGRST116') {
-                        // Записи не найдено
-                        showAccessDenied(
-                            `Доступ запрещён!`,
-                            `Пользователь с ID ${telegramUser.id} не является администратором.`,
-                            telegramUser.id
-                        );
-                    } else {
-                        showAccessDenied(
-                            'Ошибка базы данных',
-                            `${error.message}\n\nПроверьте что таблица 'admins' создана в Supabase.`
-                        );
-                    }
-                    return false;
-                }
-                
-                if (!admin) {
-                    console.error('❌ Админ не найден');
-                    showAccessDenied(
-                        `Доступ запрещён!`,
-                        `Пользователь с ID ${telegramUser.id} не является администратором.`,
+                // Проверяем есть ли ID в списке админов
+                if (!CONFIG.ADMIN_IDS.includes(telegramUser.id)) {
+                    console.error('❌ Пользователь не админ!');
+                    showError(
+                        'Доступ запрещён',
+                        `Пользователь @${telegramUser.username || telegramUser.id} (ID: ${telegramUser.id}) не является администратором.`,
                         telegramUser.id
                     );
-                    return false;
+                    return;
                 }
                 
-                // Успешная авторизация
-                console.log('🎉 Успешная авторизация!');
-                console.log('👤 Админ:', admin);
+                // ✅ Успешная авторизация!
+                console.log('🎉 Авторизация успешна!');
                 
                 currentAdmin = {
-                    ...admin,
-                    telegram_username: telegramUser.username
+                    id: telegramUser.id,
+                    username: telegramUser.username || 'admin',
+                    first_name: telegramUser.first_name,
+                    last_name: telegramUser.last_name
                 };
                 
-                document.getElementById('admin-username').textContent = 
-                    '@' + (telegramUser.username || 'admin');
-                document.getElementById('admin-id').textContent = telegramUser.id;
+                showSuccess(telegramUser);
+                
+                // Инициализируем Supabase
+                supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
                 
                 // Показываем админку
-                document.getElementById('access-screen').style.display = 'none';
-                document.getElementById('admin-content').style.display = 'block';
-                
-                console.log('📊 Загружаем данные...');
-                
-                // Загружаем данные
-                await loadData();
-                
-                console.log('✅ Админка загружена!');
-                
-                return true;
+                setTimeout(() => {
+                    document.getElementById('auth-screen').style.display = 'none';
+                    document.getElementById('admin-content').style.display = 'block';
+                    
+                    document.getElementById('admin-username').textContent = '@' + currentAdmin.username;
+                    document.getElementById('admin-id').textContent = currentAdmin.id;
+                    
+                    loadData();
+                }, 1500);
                 
             } catch (error) {
-                console.error('💥 Критическая ошибка:', error);
-                console.error('Stack:', error.stack);
-                
-                showAccessDenied(
-                    'Критическая ошибка', 
-                    `${error.message}\n\nОткройте консоль браузера (F12) для подробностей.`
-                );
-                return false;
+                console.error('💥 Ошибка:', error);
+                showError('Критическая ошибка', error.message);
             }
         }
         
-        function showAccessDenied(title, message, telegramId) {
-            const accessBox = document.querySelector('.access-box');
-            accessBox.innerHTML = `
+        function showSuccess(user) {
+            const authBox = document.querySelector('.auth-box');
+            authBox.innerHTML = `
+                <div class="success-box">
+                    <h2>✅ Авторизация успешна!</h2>
+                    <p>
+                        Добро пожаловать, <strong>@${user.username || user.id}</strong>!<br>
+                        ID: <code>${user.id}</code>
+                    </p>
+                    <p style="margin-top: 15px; font-size: 14px;">
+                        Загружаем админ-панель...
+                    </p>
+                    <div class="loader"></div>
+                </div>
+            `;
+        }
+        
+        function showError(title, message, telegramId) {
+            const authBox = document.querySelector('.auth-box');
+            authBox.innerHTML = `
                 <div class="error-box">
                     <h2>❌ ${title}</h2>
-                    <p>${message || ''}</p>
+                    <p style="text-align: left;">${message}</p>
                     ${telegramId ? `
                         <hr style="margin: 20px 0; border: none; border-top: 1px solid rgba(255,255,255,0.1);">
                         <p style="font-size: 14px; text-align: left;">
                             <strong>Как получить доступ:</strong><br><br>
-                            1. Откройте Supabase Dashboard<br>
-                            2. SQL Editor<br>
-                            3. Выполните запрос:<br>
-                            <code style="display: block; margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 5px; font-size: 12px;">
-                                INSERT INTO admins (telegram_id, username)<br>
-                                VALUES (${telegramId}, 'admin');
+                            1. Откройте файл <code>admin.html</code><br>
+                            2. Найдите строку <code>ADMIN_IDS</code><br>
+                            3. Добавьте ваш ID: <code>${telegramId}</code><br><br>
+                            Пример:<br>
+                            <code style="display: block; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 5px; margin-top: 10px;">
+                                ADMIN_IDS: [<br>
+                                &nbsp;&nbsp;562890944,<br>
+                                &nbsp;&nbsp;${telegramId} // ← Добавьте<br>
+                                ]
                             </code>
                         </p>
                     ` : ''}
                 </div>
             `;
         }
-        
-        // ============================================
-        // ИНИЦИАЛИЗАЦИЯ
-        // ============================================
-        
-        document.addEventListener('DOMContentLoaded', async () => {
-            await checkAdminAccess();
-        });
         
         // ============================================
         // ЗАГРУЗКА ДАННЫХ
@@ -777,104 +769,23 @@
                 active: document.getElementById('active').checked
             };
             
-            console.log('📝 Сохраняем данные:', data);
-            
             try {
-                let result;
-                
                 if (id) {
-                    // Обновление существующей точки
-                    console.log('🔄 Обновляем точку ID:', id);
-                    result = await supabase
-                        .from('treasures')
-                        .update(data)
-                        .eq('id', id)
-                        .select();
-                    
-                    console.log('📡 Ответ от Supabase:', result);
-                    
-                    if (result.error) {
-                        console.error('❌ Ошибка Supabase:', result.error);
-                        throw new Error(`Supabase error: ${result.error.message}\nCode: ${result.error.code}\nDetails: ${result.error.details}`);
-                    }
-                    
-                    if (!result.data || result.data.length === 0) {
-                        throw new Error('Точка не найдена или не обновлена');
-                    }
-                    
-                    console.log('✅ Точка обновлена:', result.data);
-                    alert('✅ Точка успешно обновлена!');
-                    
+                    const { error } = await supabase.from('treasures').update(data).eq('id', id);
+                    if (error) throw error;
+                    alert('Точка обновлена!');
                 } else {
-                    // Добавление новой точки
-                    console.log('➕ Добавляем новую точку');
-                    result = await supabase
-                        .from('treasures')
-                        .insert([data])
-                        .select();
-                    
-                    console.log('📡 Ответ от Supabase:', result);
-                    
-                    if (result.error) {
-                        console.error('❌ Ошибка Supabase:', result.error);
-                        throw new Error(`Supabase error: ${result.error.message}\nCode: ${result.error.code}`);
-                    }
-                    
-                    console.log('✅ Точка добавлена:', result.data);
-                    alert('✅ Точка успешно добавлена!');
+                    const { error } = await supabase.from('treasures').insert([data]);
+                    if (error) throw error;
+                    alert('Точка добавлена!');
                 }
                 
                 closeModal();
                 await loadData();
                 
             } catch (error) {
-                console.error('❌ Критическая ошибка:', error);
-                
-                // Детальное сообщение об ошибке
-                let errorMessage = 'Ошибка при сохранении!\n\n';
-                errorMessage += error.message || 'Неизвестная ошибка';
-                
-                // Проверка типичных проблем
-                if (error.message && error.message.includes('permission')) {
-                    errorMessage += '\n\n🔒 Проблема: Нет прав доступа';
-                    errorMessage += '\n\nРешение:';
-                    errorMessage += '\n1. Откройте Supabase Dashboard';
-                    errorMessage += '\n2. SQL Editor';
-                    errorMessage += '\n3. Выполните:\n   ALTER TABLE treasures DISABLE ROW LEVEL SECURITY;';
-                } else if (error.message && error.message.includes('JWT')) {
-                    errorMessage += '\n\n🔐 Проблема: Неправильный ключ API';
-                } else if (error.message && error.message.includes('network')) {
-                    errorMessage += '\n\n🌐 Проблема: Нет интернета';
-                }
-                
-                alert(errorMessage);
-            }
-        }
-                    
-                } else {
-                    // Добавление новой точки
-                    console.log('Добавляем новую точку');
-                    result = await supabase
-                        .from('treasures')
-                        .insert([data])
-                        .select(); // ✅ Важно! Возвращаем добавленные данные
-                    
-                    if (result.error) {
-                        throw result.error;
-                    }
-                    
-                    console.log('✅ Точка добавлена:', result.data);
-                    alert('✅ Точка успешно добавлена!');
-                }
-                
-                closeModal();
-                await loadData();
-                
-            } catch (error) {
-                console.error('❌ Ошибка сохранения:', error);
-                alert('❌ Ошибка при сохранении!\n\n' + 
-                      'Детали: ' + (error.message || JSON.stringify(error)) + 
-                      '\n\nПроверьте консоль (F12) для подробностей.');
+                console.error('Error saving treasure:', error);
+                alert('Ошибка при сохранении: ' + error.message);
             }
         }
         
@@ -882,12 +793,13 @@
             if (!confirm('Удалить эту точку?')) return;
             
             try {
-                await supabase.from('treasures').delete().eq('id', id);
+                const { error } = await supabase.from('treasures').delete().eq('id', id);
+                if (error) throw error;
                 alert('Точка удалена!');
                 await loadData();
             } catch (error) {
                 console.error('Error deleting treasure:', error);
-                alert('Ошибка при удалении');
+                alert('Ошибка при удалении: ' + error.message);
             }
         }
     </script>
