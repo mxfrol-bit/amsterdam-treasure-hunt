@@ -71,7 +71,6 @@
             animation: pulse 2s ease-in-out infinite;
             filter: drop-shadow(0 0 8px rgba(102, 126, 234, 0.6));
             z-index: 1000 !important;
-            position: relative !important;
         }
         
         .treasure-marker-claimed {
@@ -79,6 +78,13 @@
             filter: grayscale(100%);
             animation: none;
             z-index: 500 !important;
+        }
+        
+        /* ФИКС: Центрирование divIcon */
+        .treasure-marker,
+        .treasure-marker-claimed {
+            margin-left: -20px !important;
+            margin-top: -20px !important;
         }
         
         /* Фикс для Leaflet маркеров */
@@ -108,6 +114,8 @@
             border-radius: 50%;
             animation: player-pulse 2s infinite;
             z-index: 2000 !important;
+            margin-left: -10px !important;
+            margin-top: -10px !important;
         }
         
         /* ============================================ */
@@ -1231,12 +1239,12 @@
                 
                 const isClaimed = claimedTreasures.some(c => c.treasure_id === treasure.id);
                 
-                // ФИКС: Упрощённая иконка без iconAnchor
+                // ФИКС: Правильное центрирование divIcon
                 const icon = L.divIcon({
                     className: isClaimed ? 'treasure-marker treasure-marker-claimed' : 'treasure-marker',
-                    html: `<div style="font-size: 32px; line-height: 1; text-align: center; transform: translateY(-16px);">${treasure.icon || '💎'}</div>`,
-                    iconSize: [40, 40]
-                    // Убрали iconAnchor - это вызывало проблемы
+                    html: `<div style="font-size: 32px; line-height: 1; text-align: center; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">${treasure.icon || '💎'}</div>`,
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 20]  // Центр иконки
                 });
                 
                 const marker = L.marker([treasure.lat, treasure.lng], { 
