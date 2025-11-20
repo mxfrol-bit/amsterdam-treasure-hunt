@@ -70,12 +70,24 @@
         .treasure-marker {
             animation: pulse 2s ease-in-out infinite;
             filter: drop-shadow(0 0 8px rgba(102, 126, 234, 0.6));
+            z-index: 1000 !important;
+            position: relative !important;
         }
         
         .treasure-marker-claimed {
             opacity: 0.4;
             filter: grayscale(100%);
             animation: none;
+            z-index: 500 !important;
+        }
+        
+        /* Фикс для Leaflet маркеров */
+        .leaflet-marker-icon {
+            z-index: 1000 !important;
+        }
+        
+        .leaflet-marker-pane {
+            z-index: 600 !important;
         }
         
         /* Анимация для игрока */
@@ -95,6 +107,7 @@
             border: 3px solid #fff;
             border-radius: 50%;
             animation: player-pulse 2s infinite;
+            z-index: 2000 !important;
         }
         
         /* ============================================ */
@@ -982,47 +995,82 @@
         
         document.addEventListener('DOMContentLoaded', async () => {
             try {
+                console.log('🚀 Запуск приложения...');
+                
                 // Инициализация Telegram WebApp
+                console.log('1️⃣ Инициализация Telegram...');
                 const tg = window.Telegram.WebApp;
                 tg.ready();
                 tg.expand();
                 
                 // Инициализация Supabase
+                console.log('2️⃣ Инициализация Supabase...');
                 supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
                 
                 // Получение пользователя
+                console.log('3️⃣ Получение пользователя...');
                 const telegramUser = tg.initDataUnsafe?.user;
                 if (!telegramUser || !telegramUser.id) {
                     throw new Error('Откройте через Telegram бот!');
                 }
                 
                 // Загрузка или создание пользователя
+                console.log('4️⃣ Загрузка профиля...');
                 currentUser = await getOrCreateUser(telegramUser);
+                console.log('✅ Пользователь:', currentUser.username);
                 
                 // Инициализация карты
+                console.log('5️⃣ Инициализация карты...');
                 await initMap();
+                console.log('✅ Карта создана');
                 
-                // Загрузка точек
+                // ВАЖНО: Загружаем точки ДО UI
+                console.log('6️⃣ Загрузка точек...');
                 await loadTreasures();
                 
                 // Загрузка найденных точек
+                console.log('7️⃣ Загрузка находок...');
                 await loadClaimedTreasures();
                 
-                // Запуск геолокации
-                startTracking();
-                
                 // Обновление UI
+                console.log('8️⃣ Обновление интерфейса...');
                 updateUI();
                 
+                // Запуск геолокации
+                console.log('9️⃣ Запуск геолокации...');
+                startTracking();
+                
                 // Скрыть загрузку
+                console.log('✅ Всё готово! Показываем приложение...');
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('app').style.display = 'flex';
                 
-                console.log('✅ Приложение загружено!');
+                // ФИКС: Агрессивное обновление карты после показа (несколько попыток)
+                const finalFix = () => {
+                    try {
+                        map.invalidateSize(true);
+                        console.log('🗺️ Карта финально обновлена');
+                    } catch (e) {
+                        console.warn('⚠️ Ошибка финального обновления:', e);
+                    }
+                };
+                
+                setTimeout(finalFix, 100);
+                setTimeout(finalFix, 300);
+                setTimeout(finalFix, 500);
+                setTimeout(finalFix, 1000);
+                
+                console.log('🎉 Приложение полностью загружено!');
                 
             } catch (error) {
-                console.error('Ошибка инициализации:', error);
-                alert('Ошибка загрузки: ' + error.message);
+                console.error('💥 Ошибка инициализации:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div class="spinner"></div>
+                    <div class="loading-text" style="color: #f56565;">
+                        Ошибка: ${error.message}<br><br>
+                        Откройте через Telegram бот!
+                    </div>
+                `;
             }
         });
         
@@ -1070,12 +1118,15 @@
         async function initMap() {
             map = L.map('map', {
                 zoomControl: false,
-                attributionControl: false
+                attributionControl: false,
+                preferCanvas: false,
+                renderer: L.canvas()
             }).setView(CONFIG.MAP_CENTER, CONFIG.MAP_ZOOM);
             
             // Тёмная тема карты
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                maxZoom: 19
+                maxZoom: 19,
+                minZoom: 10
             }).addTo(map);
             
             // Создаём маркер игрока
@@ -1093,6 +1144,40 @@
                 opacity: 0.7,
                 dashArray: '10, 5'
             }).addTo(map);
+            
+            // ФИКС: Агрессивное обновление размеров карты (несколько попыток)
+            const fixMapSize = () => {
+                try {
+                    map.invalidateSize(true);
+                    console.log('✅ Карта обновлена');
+                } catch (e) {
+                    console.warn('⚠️ Ошибка обновления карты:', e);
+                }
+            };
+            
+            // Несколько попыток с разными таймаутами
+            setTimeout(fixMapSize, 50);
+            setTimeout(fixMapSize, 100);
+            setTimeout(fixMapSize, 300);
+            setTimeout(fixMapSize, 500);
+            
+            // ФИКС: Обработка изменения ориентации
+            window.addEventListener('orientationchange', () => {
+                setTimeout(fixMapSize, 100);
+                setTimeout(fixMapSize, 300);
+            });
+            
+            // ФИКС: Обработка resize
+            window.addEventListener('resize', fixMapSize);
+            
+            // ФИКС: Обновление при любом взаимодействии
+            map.on('movestart', () => {
+                setTimeout(fixMapSize, 100);
+            });
+            
+            map.on('zoomstart', () => {
+                setTimeout(fixMapSize, 100);
+            });
         }
         
         // ============================================
@@ -1101,41 +1186,77 @@
         
         async function loadTreasures() {
             try {
+                console.log('🔍 Загрузка точек из Supabase...');
+                
                 const { data, error } = await supabase
                     .from('treasures')
                     .select('*')
                     .eq('active', true);
                 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Ошибка загрузки точек:', error);
+                    throw error;
+                }
                 
                 treasures = data || [];
                 
+                console.log(`✅ Загружено ${treasures.length} точек`);
+                
+                if (treasures.length === 0) {
+                    console.warn('⚠️ Нет активных точек в базе!');
+                    alert('В базе нет точек! Добавьте через админку.');
+                    return;
+                }
+                
                 // Добавляем маркеры на карту
-                treasures.forEach(treasure => {
+                treasures.forEach((treasure, index) => {
+                    console.log(`📍 Добавляем точку #${index + 1}: ${treasure.name}`);
                     addTreasureMarker(treasure);
                 });
                 
-                console.log(`Загружено ${treasures.length} точек`);
+                console.log(`🗺️ Все ${treasures.length} маркеров добавлены на карту`);
+                
             } catch (error) {
-                console.error('Ошибка загрузки точек:', error);
+                console.error('💥 Критическая ошибка загрузки точек:', error);
+                alert('Ошибка загрузки точек: ' + error.message);
             }
         }
         
         function addTreasureMarker(treasure) {
-            const isClaimed = claimedTreasures.some(c => c.treasure_id === treasure.id);
-            
-            const icon = L.divIcon({
-                className: isClaimed ? 'treasure-marker treasure-marker-claimed' : 'treasure-marker',
-                html: `<div style="font-size: 32px;">${treasure.icon || '💎'}</div>`,
-                iconSize: [40, 40],
-                iconAnchor: [20, 40]
-            });
-            
-            const marker = L.marker([treasure.lat, treasure.lng], { icon })
-                .addTo(map)
-                .on('click', () => showTreasureDetails(treasure));
-            
-            treasureMarkers[treasure.id] = marker;
+            try {
+                if (!treasure || !treasure.lat || !treasure.lng) {
+                    console.error('❌ Некорректная точка:', treasure);
+                    return;
+                }
+                
+                const isClaimed = claimedTreasures.some(c => c.treasure_id === treasure.id);
+                
+                // ФИКС: Упрощённая иконка без iconAnchor
+                const icon = L.divIcon({
+                    className: isClaimed ? 'treasure-marker treasure-marker-claimed' : 'treasure-marker',
+                    html: `<div style="font-size: 32px; line-height: 1; text-align: center; transform: translateY(-16px);">${treasure.icon || '💎'}</div>`,
+                    iconSize: [40, 40]
+                    // Убрали iconAnchor - это вызывало проблемы
+                });
+                
+                const marker = L.marker([treasure.lat, treasure.lng], { 
+                    icon,
+                    zIndexOffset: isClaimed ? 500 : 1000,
+                    riseOnHover: true
+                })
+                    .addTo(map)
+                    .on('click', () => {
+                        console.log('🖱️ Клик по точке:', treasure.name);
+                        showTreasureDetails(treasure);
+                    });
+                
+                treasureMarkers[treasure.id] = marker;
+                
+                console.log(`✅ Маркер добавлен: ${treasure.name} (${treasure.lat}, ${treasure.lng})`);
+                
+            } catch (error) {
+                console.error('❌ Ошибка добавления маркера:', treasure, error);
+            }
         }
         
         // ============================================
@@ -1601,10 +1722,30 @@
             const treasure = treasures.find(t => t.id === treasureId);
             if (treasure) {
                 closeModal('list-modal');
-                showTreasureDetails(treasure);
                 
                 // Центрируем карту на точке
-                map.setView([treasure.lat, treasure.lng], 16);
+                map.setView([treasure.lat, treasure.lng], 16, {
+                    animate: true,
+                    duration: 0.5
+                });
+                
+                // ФИКС: Обновляем карту после анимации
+                setTimeout(() => {
+                    map.invalidateSize(true);
+                    
+                    // ФИКС: Подсвечиваем маркер
+                    const marker = treasureMarkers[treasure.id];
+                    if (marker) {
+                        // Небольшая анимация "прыжка"
+                        marker.setZIndexOffset(2000);
+                        setTimeout(() => {
+                            marker.setZIndexOffset(treasure.id === selectedTreasure?.id ? 1000 : 500);
+                        }, 500);
+                    }
+                    
+                    // Показываем детали
+                    showTreasureDetails(treasure);
+                }, 600);
             }
         }
         
