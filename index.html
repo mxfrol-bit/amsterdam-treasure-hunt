@@ -34,69 +34,51 @@
         }
         
         /* ============================================ */
-        /* ВСТРОЕННАЯ КОНСОЛЬ */
+        /* DEBUG ПАНЕЛЬ */
         /* ============================================ */
         
-        #debug-console {
+        #debug-panel {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            max-height: 40vh;
+            max-height: 35vh;
             background: rgba(0, 0, 0, 0.95);
             color: #0f0;
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
+            font-family: monospace;
+            font-size: 10px;
             overflow-y: auto;
-            z-index: 100000;
+            z-index: 999999;
             border-top: 2px solid #0f0;
-            padding: 10px;
-            display: none;
-        }
-        
-        #debug-console.visible {
+            padding: 8px;
             display: block;
         }
         
-        .console-line {
-            margin-bottom: 3px;
-            line-height: 1.4;
+        #debug-panel.hidden {
+            display: none;
+        }
+        
+        .debug-line {
+            margin-bottom: 2px;
             word-wrap: break-word;
         }
         
-        .console-error {
-            color: #ff4444;
-        }
+        .debug-error { color: #f00; }
+        .debug-warn { color: #fa0; }
+        .debug-success { color: #0f0; }
         
-        .console-warn {
-            color: #ffaa00;
-        }
-        
-        .console-success {
-            color: #00ff00;
-        }
-        
-        .console-info {
-            color: #00aaff;
-        }
-        
-        #debug-toggle {
+        #debug-toggle-btn {
             position: fixed;
-            top: 50%;
-            right: 0;
-            background: rgba(0, 255, 0, 0.2);
-            color: #0f0;
-            border: 1px solid #0f0;
-            padding: 10px 5px;
-            writing-mode: vertical-rl;
+            bottom: 35vh;
+            right: 5px;
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 5px 10px;
+            font-size: 10px;
+            z-index: 1000000;
             cursor: pointer;
-            z-index: 100001;
-            font-size: 12px;
             font-weight: bold;
-        }
-        
-        #debug-toggle:active {
-            background: rgba(0, 255, 0, 0.4);
         }
         
         /* ============================================ */
@@ -840,20 +822,20 @@
     </style>
 </head>
 <body>
+    <!-- Debug панель -->
+    <button id="debug-toggle-btn" onclick="toggleDebug()">СКРЫТЬ</button>
+    <div id="debug-panel">
+        <div style="border-bottom: 1px solid #0f0; margin-bottom: 5px; padding-bottom: 3px;">
+            <strong>🐛 DEBUG</strong>
+            <button onclick="clearDebug()" style="float: right; background: #f00; color: #fff; border: none; padding: 2px 6px; font-size: 9px;">Очистить</button>
+        </div>
+        <div id="debug-output"></div>
+    </div>
+    
     <!-- Загрузка -->
     <div id="loading" class="loading">
         <div class="spinner"></div>
         <div class="loading-text">Загрузка карты...</div>
-    </div>
-    
-    <!-- Встроенная консоль -->
-    <div id="debug-toggle" onclick="toggleDebugConsole()">DEBUG</div>
-    <div id="debug-console" class="visible">
-        <div style="margin-bottom: 10px; border-bottom: 1px solid #0f0; padding-bottom: 5px;">
-            <strong>🐛 DEBUG КОНСОЛЬ</strong>
-            <button onclick="clearDebugConsole()" style="float: right; background: #ff4444; color: #fff; border: none; padding: 2px 8px; cursor: pointer;">Очистить</button>
-        </div>
-        <div id="debug-output"></div>
     </div>
     
     <!-- Главное приложение -->
@@ -1030,88 +1012,44 @@
     
     <script>
         // ============================================
-        // ВСТРОЕННАЯ КОНСОЛЬ
+        // ПРОСТАЯ DEBUG ПАНЕЛЬ
         // ============================================
         
-        const debugOutput = [];
-        const maxDebugLines = 100;
+        const debugLines = [];
         
-        function debugLog(message, type = 'info') {
-            const timestamp = new Date().toLocaleTimeString();
+        function dlog(msg, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'debug-error' : type === 'warn' ? 'debug-warn' : type === 'success' ? 'debug-success' : '';
+            const line = `<div class="debug-line ${className}">[${time}] ${msg}</div>`;
             
-            // Если это объект, форматируем его
-            let formattedMessage = message;
-            if (typeof message === 'object' && message !== null) {
-                try {
-                    formattedMessage = JSON.stringify(message, null, 2);
-                } catch (e) {
-                    formattedMessage = String(message);
-                }
+            debugLines.push(line);
+            if (debugLines.length > 50) debugLines.shift();
+            
+            const output = document.getElementById('debug-output');
+            if (output) {
+                output.innerHTML = debugLines.join('');
+                output.scrollTop = output.scrollHeight;
+            }
+            
+            dlog(msg);
+        }
+        
+        function toggleDebug() {
+            const panel = document.getElementById('debug-panel');
+            const btn = document.getElementById('debug-toggle-btn');
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                btn.textContent = 'СКРЫТЬ';
             } else {
-                formattedMessage = String(message);
+                panel.classList.add('hidden');
+                btn.textContent = 'ПОКАЗАТЬ';
             }
-            
-            const line = {
-                time: timestamp,
-                message: formattedMessage,
-                type: type
-            };
-            
-            debugOutput.push(line);
-            if (debugOutput.length > maxDebugLines) {
-                debugOutput.shift();
-            }
-            
-            updateDebugConsole();
-            
-            // Дублируем в обычный console
-            const consoleMethod = type === 'error' ? 'error' : type === 'warn' ? 'warn' : 'log';
-            console[consoleMethod](message);
         }
         
-        function updateDebugConsole() {
-            const container = document.getElementById('debug-output');
-            if (!container) return;
-            
-            container.innerHTML = debugOutput.map(line => {
-                const className = `console-line console-${line.type}`;
-                return `<div class="${className}">[${line.time}] ${line.message}</div>`;
-            }).join('');
-            
-            container.scrollTop = container.scrollHeight;
+        function clearDebug() {
+            debugLines.length = 0;
+            document.getElementById('debug-output').innerHTML = '';
         }
-        
-        function toggleDebugConsole() {
-            const console = document.getElementById('debug-console');
-            console.classList.toggle('visible');
-        }
-        
-        function clearDebugConsole() {
-            debugOutput.length = 0;
-            updateDebugConsole();
-        }
-        
-        // Перехватываем console.log, error, warn
-        const originalConsole = {
-            log: console.log,
-            error: console.error,
-            warn: console.warn
-        };
-        
-        console.log = function(...args) {
-            debugLog(args.join(' '), 'info');
-            originalConsole.log.apply(console, args);
-        };
-        
-        console.error = function(...args) {
-            debugLog(args.join(' '), 'error');
-            originalConsole.error.apply(console, args);
-        };
-        
-        console.warn = function(...args) {
-            debugLog(args.join(' '), 'warn');
-            originalConsole.warn.apply(console, args);
-        };
         
         // ============================================
         // КОНФИГУРАЦИЯ
@@ -1163,53 +1101,53 @@
         
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                console.log('🚀 Запуск приложения...');
+                dlog('🚀 Запуск приложения...');
                 
                 // Инициализация Telegram WebApp
-                console.log('1️⃣ Инициализация Telegram...');
+                dlog('1️⃣ Инициализация Telegram...');
                 const tg = window.Telegram.WebApp;
                 tg.ready();
                 tg.expand();
                 
                 // Инициализация Supabase
-                console.log('2️⃣ Инициализация Supabase...');
+                dlog('2️⃣ Инициализация Supabase...');
                 supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
                 
                 // Получение пользователя
-                console.log('3️⃣ Получение пользователя...');
+                dlog('3️⃣ Получение пользователя...');
                 const telegramUser = tg.initDataUnsafe?.user;
                 if (!telegramUser || !telegramUser.id) {
                     throw new Error('Откройте через Telegram бот!');
                 }
                 
                 // Загрузка или создание пользователя
-                console.log('4️⃣ Загрузка профиля...');
+                dlog('4️⃣ Загрузка профиля...');
                 currentUser = await getOrCreateUser(telegramUser);
-                console.log('✅ Пользователь:', currentUser.username);
+                dlog('✅ Пользователь:', currentUser.username);
                 
                 // Инициализация карты
-                console.log('5️⃣ Инициализация карты...');
+                dlog('5️⃣ Инициализация карты...');
                 await initMap();
-                console.log('✅ Карта создана');
+                dlog('✅ Карта создана');
                 
                 // ВАЖНО: Загружаем точки ДО UI
-                console.log('6️⃣ Загрузка точек...');
+                dlog('6️⃣ Загрузка точек...');
                 await loadTreasures();
                 
                 // Загрузка найденных точек
-                console.log('7️⃣ Загрузка находок...');
+                dlog('7️⃣ Загрузка находок...');
                 await loadClaimedTreasures();
                 
                 // Обновление UI
-                console.log('8️⃣ Обновление интерфейса...');
+                dlog('8️⃣ Обновление интерфейса...');
                 updateUI();
                 
                 // Запуск геолокации
-                console.log('9️⃣ Запуск геолокации...');
+                dlog('9️⃣ Запуск геолокации...');
                 startTracking();
                 
                 // Скрыть загрузку
-                console.log('✅ Всё готово! Показываем приложение...');
+                dlog('✅ Всё готово! Показываем приложение...');
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('app').style.display = 'flex';
                 
@@ -1217,9 +1155,9 @@
                 const finalFix = () => {
                     try {
                         map.invalidateSize(true);
-                        console.log('🗺️ Карта финально обновлена');
+                        dlog('🗺️ Карта финально обновлена');
                     } catch (e) {
-                        console.warn('⚠️ Ошибка финального обновления:', e);
+                        dlog('⚠️ Ошибка финального обновления:', e);
                     }
                 };
                 
@@ -1228,10 +1166,10 @@
                 setTimeout(finalFix, 500);
                 setTimeout(finalFix, 1000);
                 
-                console.log('🎉 Приложение полностью загружено!');
+                dlog('🎉 Приложение полностью загружено!');
                 
             } catch (error) {
-                console.error('💥 Ошибка инициализации:', error);
+                dlog('💥 Ошибка инициализации:', error);
                 document.getElementById('loading').innerHTML = `
                     <div class="spinner"></div>
                     <div class="loading-text" style="color: #f56565;">
@@ -1274,7 +1212,7 @@
                 
                 return user;
             } catch (error) {
-                console.error('Ошибка загрузки пользователя:', error);
+                dlog('Ошибка загрузки пользователя:', error);
                 throw error;
             }
         }
@@ -1317,9 +1255,9 @@
             const fixMapSize = () => {
                 try {
                     map.invalidateSize(true);
-                    console.log('✅ Карта обновлена');
+                    dlog('✅ Карта обновлена');
                 } catch (e) {
-                    console.warn('⚠️ Ошибка обновления карты:', e);
+                    dlog('⚠️ Ошибка обновления карты:', e);
                 }
             };
             
@@ -1354,7 +1292,7 @@
         
         async function loadTreasures() {
             try {
-                console.log('🔍 Загрузка точек из Supabase...');
+                dlog('🔍 Загрузка точек из Supabase...');
                 
                 const { data, error } = await supabase
                     .from('treasures')
@@ -1362,63 +1300,30 @@
                     .eq('active', true);
                 
                 if (error) {
-                    console.error('❌ Ошибка загрузки точек:', error);
+                    dlog('❌ Ошибка загрузки точек:', error);
                     throw error;
                 }
                 
                 treasures = data || [];
                 
-                console.log(`✅ Загружено ${treasures.length} точек`);
-                
-                // ФИКС: Проверяем координаты каждой точки
-                console.log('📊 ПРОВЕРКА КООРДИНАТ ВСЕХ ТОЧЕК:');
-                console.log('═'.repeat(50));
-                
-                treasures.forEach((treasure, index) => {
-                    console.log(`📍 Точка #${index + 1}: "${treasure.name}"`);
-                    console.log(`   ID: ${treasure.id}`);
-                    console.log(`   Координаты: lat=${treasure.lat}, lng=${treasure.lng}`);
-                    console.log(`   Тип lat: ${typeof treasure.lat}, lng: ${typeof treasure.lng}`);
-                    console.log(`   Иконка: ${treasure.icon || 'нет'}`);
-                    console.log(`   Очки: ${treasure.points || 0}`);
-                    console.log(`   Активна: ${treasure.active}`);
-                    
-                    if (!treasure.lat || !treasure.lng) {
-                        console.error(`   ❌ ОШИБКА: Нет координат!`);
-                    } else if (typeof treasure.lat !== 'number' || typeof treasure.lng !== 'number') {
-                        console.warn(`   ⚠️ ВНИМАНИЕ: Координаты не числа!`);
-                    } else {
-                        console.log(`   ✅ Координаты OK`);
-                    }
-                    console.log('─'.repeat(50));
-                });
+                dlog(`✅ Загружено ${treasures.length} точек`);
                 
                 if (treasures.length === 0) {
-                    console.warn('⚠️ Нет активных точек в базе!');
+                    dlog('⚠️ Нет активных точек в базе!');
                     alert('В базе нет точек! Добавьте через админку.');
                     return;
                 }
                 
-                // Фильтруем только точки с координатами
-                const validTreasures = treasures.filter(t => t.lat && t.lng);
-                console.log(`✅ Точек с координатами: ${validTreasures.length} из ${treasures.length}`);
-                
-                if (validTreasures.length < treasures.length) {
-                    console.warn(`⚠️ ${treasures.length - validTreasures.length} точек БЕЗ координат!`);
-                }
-                
-                treasures = validTreasures;
-                
                 // Добавляем маркеры на карту
                 treasures.forEach((treasure, index) => {
-                    console.log(`🗺️ Добавляем маркер #${index + 1}: ${treasure.name}`);
+                    dlog(`📍 Добавляем точку #${index + 1}: ${treasure.name}`);
                     addTreasureMarker(treasure);
                 });
                 
-                console.log(`🎯 Все ${treasures.length} маркеров добавлены на карту`);
+                dlog(`🗺️ Все ${treasures.length} маркеров добавлены на карту`);
                 
             } catch (error) {
-                console.error('💥 Критическая ошибка загрузки точек:', error);
+                dlog('💥 Критическая ошибка загрузки точек:', error);
                 alert('Ошибка загрузки точек: ' + error.message);
             }
         }
@@ -1426,7 +1331,7 @@
         function addTreasureMarker(treasure) {
             try {
                 if (!treasure || !treasure.lat || !treasure.lng) {
-                    console.error('❌ Некорректная точка:', treasure);
+                    dlog('❌ Некорректная точка:', treasure);
                     return;
                 }
                 
@@ -1447,16 +1352,16 @@
                 })
                     .addTo(map)
                     .on('click', () => {
-                        console.log('🖱️ Клик по точке:', treasure.name);
+                        dlog('🖱️ Клик по точке:', treasure.name);
                         showTreasureDetails(treasure);
                     });
                 
                 treasureMarkers[treasure.id] = marker;
                 
-                console.log(`✅ Маркер добавлен: ${treasure.name} (${treasure.lat}, ${treasure.lng})`);
+                dlog(`✅ Маркер добавлен: ${treasure.name} (${treasure.lat}, ${treasure.lng})`);
                 
             } catch (error) {
-                console.error('❌ Ошибка добавления маркера:', treasure, error);
+                dlog('❌ Ошибка добавления маркера:', treasure, error);
             }
         }
         
@@ -1475,9 +1380,9 @@
                 
                 claimedTreasures = data || [];
                 
-                console.log(`Найдено ${claimedTreasures.length} точек`);
+                dlog(`Найдено ${claimedTreasures.length} точек`);
             } catch (error) {
-                console.error('Ошибка загрузки находок:', error);
+                dlog('Ошибка загрузки находок:', error);
             }
         }
         
@@ -1509,9 +1414,6 @@
                 lng: position.coords.longitude
             };
             
-            console.log(`📍 Новая позиция игрока: ${newPosition.lat}, ${newPosition.lng}`);
-            console.log(`   Точность: ${position.coords.accuracy}м`);
-            
             // Добавляем в трек
             pathCoordinates.push([newPosition.lat, newPosition.lng]);
             pathPolyline.setLatLngs(pathCoordinates);
@@ -1526,23 +1428,17 @@
             playerPosition = newPosition;
             
             // Обновляем компас и дистанции
-            console.log('🔄 Обновляем дистанции...');
             updateDistances();
-            
-            console.log('🧭 Обновляем компас...');
             updateCompass();
             
             // Проверяем близость к выбранной точке
             if (selectedTreasure) {
-                console.log('🎯 Проверяем дистанцию до выбранной точки...');
                 checkClaimDistance();
             }
-            
-            console.log('✅ Обновление позиции завершено');
         }
         
         function onPositionError(error) {
-            console.error('Ошибка геолокации:', error);
+            dlog('Ошибка геолокации:', error);
         }
         
         // Плавная анимация движения маркера
@@ -1595,41 +1491,20 @@
         }
         
         function updateDistances() {
-            if (!playerPosition) {
-                console.log('⚠️ updateDistances: Нет позиции игрока');
-                return;
-            }
+            if (!playerPosition) return;
             
-            console.log(`📍 Обновление дистанций. Позиция игрока: ${playerPosition.lat}, ${playerPosition.lng}`);
-            console.log(`📊 Точек для расчёта: ${treasures.length}`);
-            
-            treasures.forEach((treasure, index) => {
-                if (!treasure.lat || !treasure.lng) {
-                    console.error(`❌ Точка "${treasure.name}" без координат!`);
-                    treasure.distance = null;
-                    return;
-                }
-                
+            treasures.forEach(treasure => {
                 const distance = calculateDistance(
                     playerPosition.lat,
                     playerPosition.lng,
                     treasure.lat,
                     treasure.lng
                 );
-                
                 treasure.distance = distance;
-                
-                console.log(`   ${index + 1}. ${treasure.name}: ${formatDistance(distance)}`);
             });
             
             // Сортируем по дистанции
-            treasures.sort((a, b) => {
-                if (!a.distance) return 1;
-                if (!b.distance) return -1;
-                return a.distance - b.distance;
-            });
-            
-            console.log(`✅ Дистанции обновлены`);
+            treasures.sort((a, b) => a.distance - b.distance);
         }
         
         // ============================================
@@ -1855,7 +1730,7 @@
                 closeModal('treasure-modal');
                 
             } catch (error) {
-                console.error('Ошибка при находке:', error);
+                dlog('Ошибка при находке:', error);
                 alert('Ошибка: ' + error.message);
             }
         }
@@ -2063,7 +1938,7 @@
                 container.innerHTML = html;
                 
             } catch (error) {
-                console.error('Ошибка загрузки лидерборда:', error);
+                dlog('Ошибка загрузки лидерборда:', error);
                 document.getElementById('leaderboard-list').innerHTML = 
                     '<div class="text-center">Ошибка загрузки</div>';
             }
