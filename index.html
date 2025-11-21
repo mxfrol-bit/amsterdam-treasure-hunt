@@ -34,6 +34,72 @@
         }
         
         /* ============================================ */
+        /* ВСТРОЕННАЯ КОНСОЛЬ */
+        /* ============================================ */
+        
+        #debug-console {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-height: 40vh;
+            background: rgba(0, 0, 0, 0.95);
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            overflow-y: auto;
+            z-index: 100000;
+            border-top: 2px solid #0f0;
+            padding: 10px;
+            display: none;
+        }
+        
+        #debug-console.visible {
+            display: block;
+        }
+        
+        .console-line {
+            margin-bottom: 3px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+        
+        .console-error {
+            color: #ff4444;
+        }
+        
+        .console-warn {
+            color: #ffaa00;
+        }
+        
+        .console-success {
+            color: #00ff00;
+        }
+        
+        .console-info {
+            color: #00aaff;
+        }
+        
+        #debug-toggle {
+            position: fixed;
+            top: 50%;
+            right: 0;
+            background: rgba(0, 255, 0, 0.2);
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px 5px;
+            writing-mode: vertical-rl;
+            cursor: pointer;
+            z-index: 100001;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        #debug-toggle:active {
+            background: rgba(0, 255, 0, 0.4);
+        }
+        
+        /* ============================================ */
         /* ГЛАВНЫЙ КОНТЕЙНЕР */
         /* ============================================ */
         
@@ -780,6 +846,16 @@
         <div class="loading-text">Загрузка карты...</div>
     </div>
     
+    <!-- Встроенная консоль -->
+    <div id="debug-toggle" onclick="toggleDebugConsole()">DEBUG</div>
+    <div id="debug-console" class="visible">
+        <div style="margin-bottom: 10px; border-bottom: 1px solid #0f0; padding-bottom: 5px;">
+            <strong>🐛 DEBUG КОНСОЛЬ</strong>
+            <button onclick="clearDebugConsole()" style="float: right; background: #ff4444; color: #fff; border: none; padding: 2px 8px; cursor: pointer;">Очистить</button>
+        </div>
+        <div id="debug-output"></div>
+    </div>
+    
     <!-- Главное приложение -->
     <div id="app" style="display: none;">
         <!-- Карта -->
@@ -953,6 +1029,90 @@
     </div>
     
     <script>
+        // ============================================
+        // ВСТРОЕННАЯ КОНСОЛЬ
+        // ============================================
+        
+        const debugOutput = [];
+        const maxDebugLines = 100;
+        
+        function debugLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            
+            // Если это объект, форматируем его
+            let formattedMessage = message;
+            if (typeof message === 'object' && message !== null) {
+                try {
+                    formattedMessage = JSON.stringify(message, null, 2);
+                } catch (e) {
+                    formattedMessage = String(message);
+                }
+            } else {
+                formattedMessage = String(message);
+            }
+            
+            const line = {
+                time: timestamp,
+                message: formattedMessage,
+                type: type
+            };
+            
+            debugOutput.push(line);
+            if (debugOutput.length > maxDebugLines) {
+                debugOutput.shift();
+            }
+            
+            updateDebugConsole();
+            
+            // Дублируем в обычный console
+            const consoleMethod = type === 'error' ? 'error' : type === 'warn' ? 'warn' : 'log';
+            console[consoleMethod](message);
+        }
+        
+        function updateDebugConsole() {
+            const container = document.getElementById('debug-output');
+            if (!container) return;
+            
+            container.innerHTML = debugOutput.map(line => {
+                const className = `console-line console-${line.type}`;
+                return `<div class="${className}">[${line.time}] ${line.message}</div>`;
+            }).join('');
+            
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function toggleDebugConsole() {
+            const console = document.getElementById('debug-console');
+            console.classList.toggle('visible');
+        }
+        
+        function clearDebugConsole() {
+            debugOutput.length = 0;
+            updateDebugConsole();
+        }
+        
+        // Перехватываем console.log, error, warn
+        const originalConsole = {
+            log: console.log,
+            error: console.error,
+            warn: console.warn
+        };
+        
+        console.log = function(...args) {
+            debugLog(args.join(' '), 'info');
+            originalConsole.log.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            debugLog(args.join(' '), 'error');
+            originalConsole.error.apply(console, args);
+        };
+        
+        console.warn = function(...args) {
+            debugLog(args.join(' '), 'warn');
+            originalConsole.warn.apply(console, args);
+        };
+        
         // ============================================
         // КОНФИГУРАЦИЯ
         // ============================================
@@ -1211,18 +1371,26 @@
                 console.log(`✅ Загружено ${treasures.length} точек`);
                 
                 // ФИКС: Проверяем координаты каждой точки
+                console.log('📊 ПРОВЕРКА КООРДИНАТ ВСЕХ ТОЧЕК:');
+                console.log('═'.repeat(50));
+                
                 treasures.forEach((treasure, index) => {
                     console.log(`📍 Точка #${index + 1}: "${treasure.name}"`);
-                    console.log(`   - ID: ${treasure.id}`);
-                    console.log(`   - Координаты: ${treasure.lat}, ${treasure.lng}`);
-                    console.log(`   - Иконка: ${treasure.icon}`);
-                    console.log(`   - Активна: ${treasure.active}`);
+                    console.log(`   ID: ${treasure.id}`);
+                    console.log(`   Координаты: lat=${treasure.lat}, lng=${treasure.lng}`);
+                    console.log(`   Тип lat: ${typeof treasure.lat}, lng: ${typeof treasure.lng}`);
+                    console.log(`   Иконка: ${treasure.icon || 'нет'}`);
+                    console.log(`   Очки: ${treasure.points || 0}`);
+                    console.log(`   Активна: ${treasure.active}`);
                     
                     if (!treasure.lat || !treasure.lng) {
                         console.error(`   ❌ ОШИБКА: Нет координат!`);
+                    } else if (typeof treasure.lat !== 'number' || typeof treasure.lng !== 'number') {
+                        console.warn(`   ⚠️ ВНИМАНИЕ: Координаты не числа!`);
                     } else {
                         console.log(`   ✅ Координаты OK`);
                     }
+                    console.log('─'.repeat(50));
                 });
                 
                 if (treasures.length === 0) {
