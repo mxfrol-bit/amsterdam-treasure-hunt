@@ -1018,6 +1018,15 @@
         const debugLines = [];
         
         function dlog(msg, type = 'info') {
+            // Игнорируем спам от Telegram
+            if (typeof msg === 'string' && (
+                msg.includes('Telegram.WebView') || 
+                msg.includes('theme_changed') ||
+                msg.includes('receiveEvent')
+            )) {
+                return;
+            }
+            
             const time = new Date().toLocaleTimeString();
             const className = type === 'error' ? 'debug-error' : type === 'warn' ? 'debug-warn' : type === 'success' ? 'debug-success' : '';
             const line = `<div class="debug-line ${className}">[${time}] ${msg}</div>`;
@@ -1030,8 +1039,6 @@
                 output.innerHTML = debugLines.join('');
                 output.scrollTop = output.scrollHeight;
             }
-            
-            dlog(msg);
         }
         
         function toggleDebug() {
@@ -1106,8 +1113,16 @@
                 // Инициализация Telegram WebApp
                 dlog('1️⃣ Инициализация Telegram...');
                 const tg = window.Telegram.WebApp;
+                
+                // ФИКС: Отключаем debug режим Telegram чтобы не было спама
+                if (tg.isVersionAtLeast) {
+                    tg.isVersionAtLeast('6.0');
+                }
+                
                 tg.ready();
                 tg.expand();
+                
+                dlog('✅ Telegram инициализирован');
                 
                 // Инициализация Supabase
                 dlog('2️⃣ Инициализация Supabase...');
