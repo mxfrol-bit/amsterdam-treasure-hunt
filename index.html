@@ -1210,19 +1210,44 @@
                 
                 console.log(`✅ Загружено ${treasures.length} точек`);
                 
+                // ФИКС: Проверяем координаты каждой точки
+                treasures.forEach((treasure, index) => {
+                    console.log(`📍 Точка #${index + 1}: "${treasure.name}"`);
+                    console.log(`   - ID: ${treasure.id}`);
+                    console.log(`   - Координаты: ${treasure.lat}, ${treasure.lng}`);
+                    console.log(`   - Иконка: ${treasure.icon}`);
+                    console.log(`   - Активна: ${treasure.active}`);
+                    
+                    if (!treasure.lat || !treasure.lng) {
+                        console.error(`   ❌ ОШИБКА: Нет координат!`);
+                    } else {
+                        console.log(`   ✅ Координаты OK`);
+                    }
+                });
+                
                 if (treasures.length === 0) {
                     console.warn('⚠️ Нет активных точек в базе!');
                     alert('В базе нет точек! Добавьте через админку.');
                     return;
                 }
                 
+                // Фильтруем только точки с координатами
+                const validTreasures = treasures.filter(t => t.lat && t.lng);
+                console.log(`✅ Точек с координатами: ${validTreasures.length} из ${treasures.length}`);
+                
+                if (validTreasures.length < treasures.length) {
+                    console.warn(`⚠️ ${treasures.length - validTreasures.length} точек БЕЗ координат!`);
+                }
+                
+                treasures = validTreasures;
+                
                 // Добавляем маркеры на карту
                 treasures.forEach((treasure, index) => {
-                    console.log(`📍 Добавляем точку #${index + 1}: ${treasure.name}`);
+                    console.log(`🗺️ Добавляем маркер #${index + 1}: ${treasure.name}`);
                     addTreasureMarker(treasure);
                 });
                 
-                console.log(`🗺️ Все ${treasures.length} маркеров добавлены на карту`);
+                console.log(`🎯 Все ${treasures.length} маркеров добавлены на карту`);
                 
             } catch (error) {
                 console.error('💥 Критическая ошибка загрузки точек:', error);
@@ -1316,6 +1341,9 @@
                 lng: position.coords.longitude
             };
             
+            console.log(`📍 Новая позиция игрока: ${newPosition.lat}, ${newPosition.lng}`);
+            console.log(`   Точность: ${position.coords.accuracy}м`);
+            
             // Добавляем в трек
             pathCoordinates.push([newPosition.lat, newPosition.lng]);
             pathPolyline.setLatLngs(pathCoordinates);
@@ -1330,13 +1358,19 @@
             playerPosition = newPosition;
             
             // Обновляем компас и дистанции
+            console.log('🔄 Обновляем дистанции...');
             updateDistances();
+            
+            console.log('🧭 Обновляем компас...');
             updateCompass();
             
             // Проверяем близость к выбранной точке
             if (selectedTreasure) {
+                console.log('🎯 Проверяем дистанцию до выбранной точки...');
                 checkClaimDistance();
             }
+            
+            console.log('✅ Обновление позиции завершено');
         }
         
         function onPositionError(error) {
@@ -1393,20 +1427,41 @@
         }
         
         function updateDistances() {
-            if (!playerPosition) return;
+            if (!playerPosition) {
+                console.log('⚠️ updateDistances: Нет позиции игрока');
+                return;
+            }
             
-            treasures.forEach(treasure => {
+            console.log(`📍 Обновление дистанций. Позиция игрока: ${playerPosition.lat}, ${playerPosition.lng}`);
+            console.log(`📊 Точек для расчёта: ${treasures.length}`);
+            
+            treasures.forEach((treasure, index) => {
+                if (!treasure.lat || !treasure.lng) {
+                    console.error(`❌ Точка "${treasure.name}" без координат!`);
+                    treasure.distance = null;
+                    return;
+                }
+                
                 const distance = calculateDistance(
                     playerPosition.lat,
                     playerPosition.lng,
                     treasure.lat,
                     treasure.lng
                 );
+                
                 treasure.distance = distance;
+                
+                console.log(`   ${index + 1}. ${treasure.name}: ${formatDistance(distance)}`);
             });
             
             // Сортируем по дистанции
-            treasures.sort((a, b) => a.distance - b.distance);
+            treasures.sort((a, b) => {
+                if (!a.distance) return 1;
+                if (!b.distance) return -1;
+                return a.distance - b.distance;
+            });
+            
+            console.log(`✅ Дистанции обновлены`);
         }
         
         // ============================================
