@@ -1345,20 +1345,15 @@
                     return;
                 }
                 
+                dlog(`🧪 ТЕСТ: Создаем маркер для ${treasure.name} на [${treasure.lat}, ${treasure.lng}]`);
+                
                 const isClaimed = claimedTreasures.some(c => c.treasure_id === treasure.id);
                 
-                // Правильное центрирование divIcon - БЕЗ вложенного div
-                const icon = L.divIcon({
-                    className: isClaimed ? 'treasure-marker treasure-marker-claimed' : 'treasure-marker',
-                    html: treasure.icon || '💎',
-                    iconSize: [40, 40],
-                    iconAnchor: [20, 20]
-                });
-                
-                const marker = L.marker([treasure.lat, treasure.lng], { 
-                    icon,
-                    zIndexOffset: isClaimed ? 500 : 1000,
-                    riseOnHover: true
+                // ТЕСТ: Используем обычный маркер Leaflet (не divIcon!)
+                const marker = L.marker([treasure.lat, treasure.lng], {
+                    title: treasure.name,
+                    riseOnHover: true,
+                    zIndexOffset: isClaimed ? 500 : 1000
                 })
                     .addTo(map)
                     .on('click', () => {
@@ -1366,9 +1361,12 @@
                         showTreasureDetails(treasure);
                     });
                 
+                // Добавляем popup с названием
+                marker.bindPopup(`<b>${treasure.icon || '💎'} ${treasure.name}</b>`);
+                
                 treasureMarkers[treasure.id] = marker;
                 
-                dlog(`✅ Маркер добавлен: ${treasure.name} (${treasure.lat}, ${treasure.lng})`);
+                dlog(`✅ ТЕСТ: Маркер добавлен: ${treasure.name} (${treasure.lat}, ${treasure.lng})`);
                 
             } catch (error) {
                 dlog('❌ Ошибка добавления маркера:', treasure, error);
