@@ -128,13 +128,6 @@
             z-index: 500 !important;
         }
         
-        /* ФИКС: Центрирование divIcon */
-        .treasure-marker,
-        .treasure-marker-claimed {
-            margin-left: -20px !important;
-            margin-top: -20px !important;
-        }
-        
         /* Фикс для Leaflet маркеров */
         .leaflet-marker-icon {
             z-index: 1000 !important;
@@ -162,8 +155,6 @@
             border-radius: 50%;
             animation: player-pulse 2s infinite;
             z-index: 2000 !important;
-            margin-left: -10px !important;
-            margin-top: -10px !important;
         }
         
         /* ============================================ */
@@ -1253,7 +1244,8 @@
             // Создаём маркер игрока
             const playerIcon = L.divIcon({
                 className: 'player-marker',
-                iconSize: [20, 20]
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]  // Центр маркера
             });
             
             playerMarker = L.marker(CONFIG.MAP_CENTER, { icon: playerIcon }).addTo(map);
