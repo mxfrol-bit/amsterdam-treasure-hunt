@@ -119,6 +119,11 @@
             animation: pulse 2s ease-in-out infinite;
             filter: drop-shadow(0 0 8px rgba(102, 126, 234, 0.6));
             z-index: 1000 !important;
+            font-size: 32px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            line-height: 1 !important;
         }
         
         .treasure-marker-claimed {
@@ -1230,9 +1235,7 @@
         async function initMap() {
             map = L.map('map', {
                 zoomControl: false,
-                attributionControl: false,
-                preferCanvas: false,
-                renderer: L.canvas()
+                attributionControl: false
             }).setView(CONFIG.MAP_CENTER, CONFIG.MAP_ZOOM);
             
             // Тёмная тема карты
@@ -1344,12 +1347,12 @@
                 
                 const isClaimed = claimedTreasures.some(c => c.treasure_id === treasure.id);
                 
-                // ФИКС: Правильное центрирование divIcon
+                // Правильное центрирование divIcon - БЕЗ вложенного div
                 const icon = L.divIcon({
                     className: isClaimed ? 'treasure-marker treasure-marker-claimed' : 'treasure-marker',
-                    html: `<div style="font-size: 32px; line-height: 1; text-align: center; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">${treasure.icon || '💎'}</div>`,
+                    html: treasure.icon || '💎',
                     iconSize: [40, 40],
-                    iconAnchor: [20, 20]  // Центр иконки
+                    iconAnchor: [20, 20]
                 });
                 
                 const marker = L.marker([treasure.lat, treasure.lng], { 
