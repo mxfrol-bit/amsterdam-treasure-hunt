@@ -17,11 +17,11 @@
     
     <style>
         /* ============================================ */
-        /* 🎨 РЕВОЛЮЦИОННЫЙ ДИЗАЙН - БАЗОВЫЕ СТИЛИ */
+        /* 🎨 РЕВОЛЮЦИОННЫЙ ДИЗАЙН + РАБОЧИЙ КОД */
         /* ============================================ */
         
         :root {
-            /* Цветовая палитра - Неоморфизм + Глассморфизм */
+            /* Цветовая палитра */
             --bg-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --bg-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             --bg-legendary: linear-gradient(135deg, #ffd700 0%, #ff6b6b 100%);
@@ -32,17 +32,6 @@
             --glass-bg: rgba(255, 255, 255, 0.1);
             --glass-border: rgba(255, 255, 255, 0.18);
             --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-            
-            /* Неоморфизм */
-            --neo-light: #ffffff;
-            --neo-dark: rgba(0, 0, 0, 0.2);
-            --neo-shadow-1: -5px -5px 10px rgba(255, 255, 255, 0.1);
-            --neo-shadow-2: 5px 5px 10px rgba(0, 0, 0, 0.3);
-            
-            /* Текст */
-            --text-primary: #ffffff;
-            --text-secondary: rgba(255, 255, 255, 0.8);
-            --text-accent: #667eea;
         }
         
         * {
@@ -54,8 +43,8 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'SF Pro Display', sans-serif;
-            background: #0f0f23;
-            color: var(--text-primary);
+            background: #0a0e27;
+            color: #fff;
             overflow: hidden;
             position: fixed;
             width: 100%;
@@ -84,7 +73,7 @@
             100% { background-position: 0% 50%; }
         }
         
-        /* Звёздное небо */
+        /* Звёзды */
         .stars {
             position: fixed;
             top: 0;
@@ -110,7 +99,55 @@
         }
         
         /* ============================================ */
-        /* 🗺️ КАРТА - УЛЬТРА СОВРЕМЕННЫЙ СТИЛЬ */
+        /* DEBUG ПАНЕЛЬ */
+        /* ============================================ */
+        
+        #debug-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-height: 35vh;
+            background: rgba(0, 0, 0, 0.95);
+            color: #0f0;
+            font-family: monospace;
+            font-size: 10px;
+            overflow-y: auto;
+            z-index: 999999;
+            border-top: 2px solid #0f0;
+            padding: 8px;
+            display: block;
+        }
+        
+        #debug-panel.hidden {
+            display: none;
+        }
+        
+        .debug-line {
+            margin-bottom: 2px;
+            word-wrap: break-word;
+        }
+        
+        .debug-error { color: #f00; }
+        .debug-warn { color: #fa0; }
+        .debug-success { color: #0f0; }
+        
+        #debug-toggle-btn {
+            position: fixed;
+            bottom: 35vh;
+            right: 5px;
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 5px 10px;
+            font-size: 10px;
+            z-index: 1000000;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        /* ============================================ */
+        /* ГЛАВНЫЙ КОНТЕЙНЕР */
         /* ============================================ */
         
         #app {
@@ -122,157 +159,84 @@
             z-index: 1;
         }
         
-        #map-container {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-            border-radius: 0;
-        }
+        /* ============================================ */
+        /* КАРТА */
+        /* ============================================ */
         
         #map {
+            flex: 1;
             width: 100%;
-            height: 100%;
+            position: relative;
+            z-index: 1;
             filter: brightness(0.9) contrast(1.1) saturate(1.2);
         }
         
-        /* Стильная рамка карты */
-        #map::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            pointer-events: none;
-            box-shadow: inset 0 0 100px rgba(102, 126, 234, 0.2);
-        }
-        
         /* ============================================ */
-        /* 💎 МАРКЕРЫ - 3D СТИЛЬ */
+        /* 💎 МАРКЕРЫ - РАБОЧИЙ СТИЛЬ */
         /* ============================================ */
         
-        .treasure-marker {
-            width: 60px !important;
-            height: 60px !important;
-            margin: -30px 0 0 -30px !important;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border: 2px solid var(--glass-border);
-            border-radius: 50%;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            font-size: 30px !important;
-            box-shadow: var(--glass-shadow),
-                        0 0 30px rgba(102, 126, 234, 0.6);
-            animation: float 3s ease-in-out infinite;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            position: relative;
-        }
-        
-        .treasure-marker::before {
-            content: '';
-            position: absolute;
-            top: -10px;
-            left: -10px;
-            right: -10px;
-            bottom: -10px;
-            background: var(--bg-primary);
-            border-radius: 50%;
-            opacity: 0;
-            z-index: -1;
-            transition: opacity 0.3s;
-        }
-        
-        .treasure-marker:hover::before,
-        .treasure-marker:active::before {
-            opacity: 0.3;
-            animation: ripple 1s infinite;
+        /* Анимация пульсации для точек */
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.15);
+                opacity: 0.8;
+            }
         }
         
         @keyframes float {
-            0%, 100% { transform: translateY(0px) scale(1); }
-            50% { transform: translateY(-10px) scale(1.05); }
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
         }
         
-        @keyframes ripple {
-            0% {
-                transform: scale(1);
-                opacity: 0.3;
-            }
-            100% {
-                transform: scale(1.5);
-                opacity: 0;
-            }
+        .treasure-marker {
+            animation: pulse 2s ease-in-out infinite, float 3s ease-in-out infinite !important;
+            filter: drop-shadow(0 0 10px rgba(102, 126, 234, 0.8)) !important;
+            z-index: 1000 !important;
+            font-size: 32px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            line-height: 1 !important;
         }
         
-        /* Легендарные точки */
-        .treasure-marker-legendary {
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 107, 107, 0.3) 100%);
-            box-shadow: 0 0 40px rgba(255, 215, 0, 0.8),
-                        var(--glass-shadow);
-            animation: float 3s ease-in-out infinite, glow-legendary 2s ease-in-out infinite;
-        }
-        
-        @keyframes glow-legendary {
-            0%, 100% { filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.8)); }
-            50% { filter: drop-shadow(0 0 25px rgba(255, 215, 0, 1)); }
-        }
-        
-        /* Мистические точки */
-        .treasure-marker-mystic {
-            background: linear-gradient(135deg, rgba(168, 237, 234, 0.3) 0%, rgba(254, 214, 227, 0.3) 100%);
-            box-shadow: 0 0 40px rgba(168, 237, 234, 0.8),
-                        var(--glass-shadow);
-            animation: float 3s ease-in-out infinite, glow-mystic 2s ease-in-out infinite;
-        }
-        
-        @keyframes glow-mystic {
-            0%, 100% { filter: drop-shadow(0 0 15px rgba(168, 237, 234, 0.8)); }
-            50% { filter: drop-shadow(0 0 25px rgba(254, 214, 227, 1)); }
-        }
-        
-        /* Найденные точки */
         .treasure-marker-claimed {
-            opacity: 0.4;
-            filter: grayscale(100%);
+            opacity: 0.4 !important;
+            filter: grayscale(100%) !important;
             animation: none !important;
-            box-shadow: none;
+            z-index: 500 !important;
         }
         
-        /* Маркер игрока - Футуристичный */
-        .player-marker {
-            width: 40px !important;
-            height: 40px !important;
-            margin: -20px 0 0 -20px !important;
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-            border: 3px solid rgba(255, 255, 255, 0.9);
-            border-radius: 50%;
-            box-shadow: 0 0 30px rgba(76, 175, 80, 0.8),
-                        0 0 60px rgba(76, 175, 80, 0.4);
-            animation: playerPulse 2s infinite;
-            position: relative;
+        /* Фикс для Leaflet маркеров */
+        .leaflet-marker-icon {
+            z-index: 1000 !important;
         }
         
-        .player-marker::after {
-            content: '📍';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 20px;
+        .leaflet-marker-pane {
+            z-index: 600 !important;
         }
         
-        @keyframes playerPulse {
+        /* Анимация для игрока */
+        @keyframes player-pulse {
             0%, 100% {
-                box-shadow: 0 0 30px rgba(76, 175, 80, 0.8),
-                            0 0 60px rgba(76, 175, 80, 0.4);
+                box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
             }
             50% {
-                box-shadow: 0 0 40px rgba(76, 175, 80, 1),
-                            0 0 80px rgba(76, 175, 80, 0.6);
+                box-shadow: 0 0 0 15px rgba(76, 175, 80, 0);
             }
+        }
+        
+        .player-marker {
+            width: 20px !important;
+            height: 20px !important;
+            background: #4CAF50 !important;
+            border: 3px solid #fff !important;
+            border-radius: 50% !important;
+            animation: player-pulse 2s infinite !important;
+            z-index: 2000 !important;
         }
         
         /* ============================================ */
@@ -287,7 +251,7 @@
             background: var(--glass-bg);
             backdrop-filter: blur(20px) saturate(180%);
             border: 1px solid var(--glass-border);
-            padding: 20px 15px 15px 15px;
+            padding: 15px;
             z-index: 1000;
             box-shadow: var(--glass-shadow);
         }
@@ -296,7 +260,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
         
         .status-row:last-child {
@@ -306,22 +270,20 @@
         .user-info {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
         
-        /* 3D Аватар */
         .avatar {
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             background: var(--bg-primary);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
-            box-shadow: var(--neo-shadow-1), var(--neo-shadow-2);
-            border: 3px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
             position: relative;
             overflow: hidden;
         }
@@ -342,69 +304,47 @@
             100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
         }
         
-        .user-details {
-            flex: 1;
-        }
-        
         .user-name {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-primary);
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-            margin-bottom: 3px;
+            font-size: 16px;
+            font-weight: 600;
         }
         
         .user-stats {
-            font-size: 13px;
-            color: var(--text-secondary);
-            display: flex;
-            gap: 10px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
         }
         
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        /* Огненный бейдж стрика */
         .streak-badge {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             background: var(--bg-secondary);
-            padding: 8px 15px;
+            padding: 5px 12px;
             border-radius: 20px;
-            font-size: 16px;
-            font-weight: 700;
+            font-size: 14px;
+            font-weight: 600;
             box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
             animation: pulse 2s ease-in-out infinite;
         }
         
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        
         .streak-fire {
             animation: flicker 1.5s infinite;
-            font-size: 20px;
         }
         
         @keyframes flicker {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.8; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.2); }
         }
         
-        /* Прогресс-бар - Футуристичный */
+        /* Прогресс-бар */
         .progress-container {
-            margin-top: 12px;
+            margin-top: 10px;
         }
         
         .progress-label {
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 5px;
             display: flex;
             justify-content: space-between;
             font-weight: 600;
@@ -412,11 +352,10 @@
         
         .progress-bar {
             width: 100%;
-            height: 8px;
+            height: 6px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             overflow: hidden;
-            position: relative;
             box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
         }
         
@@ -446,16 +385,16 @@
         }
         
         /* ============================================ */
-        /* 🧭 КОМПАС - НЕВЕРОЯТНЫЙ ДИЗАЙН */
+        /* 🧭 КОМПАС */
         /* ============================================ */
         
         .compass-container {
             background: var(--glass-bg);
             backdrop-filter: blur(20px) saturate(180%);
             border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 15px;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -486,59 +425,44 @@
         }
         
         .compass-title {
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 5px;
         }
         
         .compass-target {
-            font-size: 18px;
-            font-weight: 700;
+            font-size: 16px;
+            font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
+            gap: 5px;
         }
         
         .compass-distance {
-            font-size: 32px;
-            font-weight: 900;
+            font-size: 24px;
+            font-weight: 700;
             background: var(--bg-primary);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
         
-        /* 3D Стрелка компаса */
         .compass-arrow {
-            width: 70px;
-            height: 70px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background: var(--bg-primary);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
+            font-size: 24px;
             transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5),
-                        var(--neo-shadow-1), var(--neo-shadow-2);
-            position: relative;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
             z-index: 1;
         }
         
-        .compass-arrow::after {
-            content: '';
-            position: absolute;
-            inset: 3px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
-        }
-        
         /* ============================================ */
-        /* 🎮 НИЖНЯЯ ПАНЕЛЬ - ИГРОВОЙ СТИЛЬ */
+        /* 🎮 НИЖНЯЯ ПАНЕЛЬ */
         /* ============================================ */
         
         #bottom-panel {
@@ -549,7 +473,7 @@
             background: var(--glass-bg);
             backdrop-filter: blur(20px) saturate(180%);
             border-top: 1px solid var(--glass-border);
-            padding: 15px;
+            padding: 10px;
             z-index: 1000;
             box-shadow: 0 -8px 32px 0 rgba(31, 38, 135, 0.37);
         }
@@ -557,41 +481,25 @@
         .nav-buttons {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
+            gap: 10px;
         }
         
-        /* 3D Кнопки навигации */
         .nav-btn {
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
             border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 15px 10px;
-            color: var(--text-primary);
-            font-size: 13px;
-            font-weight: 600;
+            border-radius: 12px;
+            padding: 12px 8px;
+            color: #fff;
+            font-size: 12px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 6px;
-            box-shadow: var(--neo-shadow-1), var(--neo-shadow-2);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .nav-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--bg-primary);
-            opacity: 0;
-            transition: opacity 0.3s;
+            gap: 5px;
+            box-shadow: -3px -3px 7px rgba(255, 255, 255, 0.05), 3px 3px 7px rgba(0, 0, 0, 0.3);
         }
         
         .nav-btn:active {
@@ -599,21 +507,14 @@
         }
         
         .nav-btn-icon {
-            font-size: 24px;
-            position: relative;
-            z-index: 1;
+            font-size: 20px;
             transition: transform 0.3s;
-        }
-        
-        .nav-btn span {
-            position: relative;
-            z-index: 1;
         }
         
         .nav-btn-active {
             background: var(--bg-primary);
-            box-shadow: 0 0 30px rgba(102, 126, 234, 0.6);
-            transform: translateY(-3px);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
+            transform: translateY(-2px);
         }
         
         .nav-btn-active .nav-btn-icon {
@@ -627,7 +528,7 @@
         }
         
         /* ============================================ */
-        /* 🎭 МОДАЛЬНЫЕ ОКНА - EPIC STYLE */
+        /* МОДАЛЬНЫЕ ОКНА */
         /* ============================================ */
         
         .modal {
@@ -637,7 +538,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             backdrop-filter: blur(10px);
             z-index: 10000;
             overflow-y: auto;
@@ -654,16 +555,16 @@
             backdrop-filter: blur(40px) saturate(180%);
             border: 1px solid var(--glass-border);
             margin: 20px;
-            padding: 30px 25px;
-            border-radius: 30px;
+            padding: 25px;
+            border-radius: 20px;
             position: relative;
-            animation: slideUp 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            animation: slideUp 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
         }
         
         @keyframes slideUp {
             from {
-                transform: translateY(100px);
+                transform: translateY(50px);
                 opacity: 0;
             }
             to {
@@ -672,21 +573,20 @@
             }
         }
         
-        /* Кнопка закрытия */
         .modal-close {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 15px;
+            right: 15px;
             font-size: 28px;
             cursor: pointer;
-            color: var(--text-secondary);
-            width: 40px;
-            height: 40px;
+            color: #888;
+            width: 35px;
+            height: 35px;
             display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
             transition: all 0.3s;
         }
         
@@ -696,12 +596,12 @@
         }
         
         .modal-header {
-            font-size: 28px;
-            font-weight: 900;
-            margin-bottom: 25px;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
             background: var(--bg-primary);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -709,11 +609,366 @@
         }
         
         .modal-icon {
-            font-size: 40px;
+            font-size: 32px;
             animation: float 3s ease-in-out infinite;
         }
         
-        /* Продолжение в следующем файле... */
+        /* ОСТАЛЬНЫЕ СТИЛИ ИЗ РАБОЧЕГО ФАЙЛА... */
+        .treasure-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .treasure-info {
+            margin-bottom: 15px;
+        }
+        
+        .treasure-name {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .treasure-category {
+            display: inline-block;
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .treasure-legend {
+            font-size: 15px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 20px;
+        }
+        
+        .treasure-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-box {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 5px;
+        }
+        
+        .claim-btn {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .claim-btn-active {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: #fff;
+        }
+        
+        .claim-btn-disabled {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.3);
+            cursor: not-allowed;
+        }
+        
+        .claim-btn-active:active {
+            transform: scale(0.98);
+        }
+        
+        /* Профиль */
+        .profile-header {
+            text-align: center;
+            padding: 30px 0;
+            background: var(--bg-primary);
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin: 0 auto 15px;
+        }
+        
+        .profile-name {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .profile-rank {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        
+        .achievement-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .achievement-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        
+        .achievement-locked {
+            opacity: 0.3;
+            filter: grayscale(100%);
+        }
+        
+        .achievement-name {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        /* Лидерборд */
+        .leaderboard-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 12px;
+        }
+        
+        .rank-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .rank-1 {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #000;
+        }
+        
+        .rank-2 {
+            background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+            color: #000;
+        }
+        
+        .rank-3 {
+            background: linear-gradient(135deg, #cd7f32 0%, #e8a87c 100%);
+            color: #000;
+        }
+        
+        .player-info {
+            flex: 1;
+        }
+        
+        .player-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+        
+        .player-score {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .player-points {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        /* Списки */
+        .treasure-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .treasure-list-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .treasure-list-item:active {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(0.98);
+        }
+        
+        .treasure-list-icon {
+            font-size: 32px;
+            width: 50px;
+            text-align: center;
+        }
+        
+        .treasure-list-info {
+            flex: 1;
+        }
+        
+        .treasure-list-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .treasure-list-distance {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .treasure-list-claimed {
+            opacity: 0.5;
+        }
+        
+        .claimed-badge {
+            background: #4CAF50;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        /* Загрузка */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100000;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #fff;
+            font-weight: 600;
+        }
+        
+        /* Успешная находка */
+        .success-animation {
+            text-align: center;
+            padding: 20px 0;
+        }
+        
+        .success-icon {
+            font-size: 80px;
+            animation: successPop 0.5s ease;
+        }
+        
+        @keyframes successPop {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        .success-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 20px 0 10px;
+        }
+        
+        .success-points {
+            font-size: 48px;
+            font-weight: 700;
+            color: #4CAF50;
+            margin: 10px 0;
+        }
+        
+        .success-message {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 30px;
+        }
+        
+        /* Утилиты */
+        .text-center { text-align: center; }
+        .mb-10 { margin-bottom: 10px; }
+        .mb-20 { margin-bottom: 20px; }
+        .mt-20 { margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -721,61 +976,37 @@
     <div class="animated-bg"></div>
     <div class="stars" id="stars"></div>
     
-    <!-- Загрузка -->
-    <div id="loading" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100000;">
-        <div style="font-size: 80px; animation: float 3s ease-in-out infinite;">🔮</div>
-        <div style="margin-top: 20px; font-size: 24px; font-weight: 700; color: #fff;">Загрузка магии...</div>
-        <div style="margin-top: 30px; width: 200px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden;">
-            <div style="width: 0%; height: 100%; background: white; animation: loading 2s infinite;"></div>
+    <!-- Debug панель -->
+    <button id="debug-toggle-btn" onclick="toggleDebug()">СКРЫТЬ</button>
+    <div id="debug-panel">
+        <div style="border-bottom: 1px solid #0f0; margin-bottom: 5px; padding-bottom: 3px;">
+            <strong>🐛 DEBUG</strong>
+            <button onclick="clearDebug()" style="float: right; background: #f00; color: #fff; border: none; padding: 2px 6px; font-size: 9px;">Очистить</button>
         </div>
+        <div id="debug-output"></div>
     </div>
     
-    <style>
-        @keyframes loading {
-            0% { width: 0%; }
-            50% { width: 100%; }
-            100% { width: 0%; }
-        }
-    </style>
-    
-    <script>
-        // Создаём звёзды
-        const starsContainer = document.getElementById('stars');
-        for (let i = 0; i < 100; i++) {
-            const star = document.createElement('div');
-            star.className = 'star';
-            star.style.left = Math.random() * 100 + '%';
-            star.style.top = Math.random() * 100 + '%';
-            star.style.animationDelay = Math.random() * 3 + 's';
-            starsContainer.appendChild(star);
-        }
-        
-        console.log('🔮 Революционный дизайн загружен!');
-    </script>
-</body>
-</html>
+    <!-- Загрузка -->
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">🔮 Загрузка магии...</div>
+    </div>
     
     <!-- Главное приложение -->
     <div id="app" style="display: none;">
         <!-- Карта -->
-        <div id="map-container">
-            <div id="map"></div>
-        </div>
+        <div id="map"></div>
         
         <!-- Верхняя панель -->
         <div id="status-bar">
             <div class="status-row">
                 <div class="user-info">
                     <div class="avatar" id="user-avatar">👤</div>
-                    <div class="user-details">
+                    <div>
                         <div class="user-name" id="user-name">Загрузка...</div>
                         <div class="user-stats">
-                            <div class="stat-item">
-                                ⭐ <span id="user-score">0</span>
-                            </div>
-                            <div class="stat-item">
-                                💎 <span id="user-found">0</span>/<span id="user-total">0</span>
-                            </div>
+                            <span id="user-score">0</span> очков • 
+                            <span id="user-found">0</span>/<span id="user-total">0</span> найдено
                         </div>
                     </div>
                 </div>
@@ -786,7 +1017,7 @@
             </div>
             <div class="progress-container">
                 <div class="progress-label">
-                    <span>✨ Прогресс квеста</span>
+                    <span>✨ Прогресс</span>
                     <span id="progress-percent">0%</span>
                 </div>
                 <div class="progress-bar">
@@ -818,7 +1049,7 @@
                 </button>
                 <button class="nav-btn" onclick="showList()">
                     <span class="nav-btn-icon">📍</span>
-                    <span>Точки</span>
+                    <span>Список</span>
                 </button>
                 <button class="nav-btn" onclick="showProfile()">
                     <span class="nav-btn-icon">👤</span>
@@ -832,77 +1063,303 @@
         </div>
     </div>
     
+    <!-- МОДАЛЬНЫЕ ОКНА - ВСЕ КАК В РАБОЧЕМ ФАЙЛЕ -->    
+    <!-- Модальное окно: Детали точки -->
+    <div id="treasure-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('treasure-modal')">&times;</span>
+            <img id="treasure-modal-image" class="treasure-image" src="" alt="" style="display: none;">
+            <div class="treasure-info">
+                <div class="treasure-category" id="treasure-modal-category">История</div>
+                <div class="treasure-name" id="treasure-modal-name">Загрузка...</div>
+                <div class="treasure-legend" id="treasure-modal-legend"></div>
+            </div>
+            <div class="treasure-stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="treasure-modal-points">0</div>
+                    <div class="stat-label">Очков</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="treasure-modal-distance">---м</div>
+                    <div class="stat-label">Расстояние</div>
+                </div>
+            </div>
+            <button class="claim-btn claim-btn-disabled" id="claim-btn" onclick="claimTreasure()">
+                <span>🔒</span>
+                <span>Слишком далеко</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Модальное окно: Список точек -->
+    <div id="list-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('list-modal')">&times;</span>
+            <div class="modal-header">
+                <span class="modal-icon">📍</span>
+                <span>Все точки</span>
+            </div>
+            <div class="treasure-list" id="treasure-list"></div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно: Профиль -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('profile-modal')">&times;</span>
+            <div class="profile-header">
+                <div class="profile-avatar" id="profile-avatar">👤</div>
+                <div class="profile-name" id="profile-name">Игрок</div>
+                <div class="profile-rank" id="profile-rank">#0 в рейтинге</div>
+            </div>
+            <div class="profile-stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="profile-score">0</div>
+                    <div class="stat-label">Очков</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="profile-found">0</div>
+                    <div class="stat-label">Найдено</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="profile-streak">0</div>
+                    <div class="stat-label">Дней подряд</div>
+                </div>
+            </div>
+            <div class="modal-header mt-20">
+                <span class="modal-icon">🏆</span>
+                <span>Достижения</span>
+            </div>
+            <div class="achievements-grid" id="achievements-grid">
+                <!-- Заполняется JS -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно: Лидерборд -->
+    <div id="leaderboard-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('leaderboard-modal')">&times;</span>
+            <div class="modal-header">
+                <span class="modal-icon">🏆</span>
+                <span>Топ игроков</span>
+            </div>
+            <div class="leaderboard-list" id="leaderboard-list"></div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно: Успешная находка -->
+    <div id="success-modal" class="modal">
+        <div class="modal-content">
+            <div class="success-animation">
+                <div class="success-icon">🎉</div>
+                <div class="success-title">Поздравляем!</div>
+                <div class="success-points">+<span id="success-points">0</span></div>
+                <div class="success-message" id="success-message">Вы нашли точку!</div>
+            </div>
+            <button class="claim-btn claim-btn-active" onclick="closeModal('success-modal')">
+                <span>Продолжить</span>
+            </button>
+        </div>
+    </div>
+    
     <script>
-        // Конфигурация с ПРАВИЛЬНЫМИ координатами
+        // Создаём звёзды
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 50; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            starsContainer.appendChild(star);
+        }
+        
+        // ============================================
+        // ВЕСЬ РАБОЧИЙ КОД ИЗ ОРИГИНАЛЬНОГО ФАЙЛА
+        // ============================================
+        
+        const debugLines = [];
+        
+        function dlog(msg, type = 'info') {
+            if (typeof msg === 'string' && (
+                msg.includes('Telegram.WebView') || 
+                msg.includes('theme_changed') ||
+                msg.includes('receiveEvent')
+            )) {
+                return;
+            }
+            
+            const time = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'debug-error' : type === 'warn' ? 'debug-warn' : type === 'success' ? 'debug-success' : '';
+            const line = `<div class="debug-line ${className}">[${time}] ${msg}</div>`;
+            
+            debugLines.push(line);
+            if (debugLines.length > 50) debugLines.shift();
+            
+            const output = document.getElementById('debug-output');
+            if (output) {
+                output.innerHTML = debugLines.join('');
+                output.scrollTop = output.scrollHeight;
+            }
+        }
+        
+        function toggleDebug() {
+            const panel = document.getElementById('debug-panel');
+            const btn = document.getElementById('debug-toggle-btn');
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                btn.textContent = 'СКРЫТЬ';
+            } else {
+                panel.classList.add('hidden');
+                btn.textContent = 'ПОКАЗАТЬ';
+            }
+        }
+        
+        function clearDebug() {
+            debugLines.length = 0;
+            document.getElementById('debug-output').innerHTML = '';
+        }
+        
+        // КОНФИГУРАЦИЯ
         const CONFIG = {
             SUPABASE_URL: 'https://otvtqoowhupqxushkmma.supabase.co',
             SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90dnRxb293aHVwcXh1c2hrbW1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMTEyNzksImV4cCI6MjA3ODg4NzI3OX0.Q9yV-YW1ir9eOIH-eOKTnsbVH0CD2Eruw4eZ7YWajBM',
             CLAIM_DISTANCE: 50,
-            MAP_CENTER: [56.3287, 44.002],
-            MAP_ZOOM: 13
+            MAP_CENTER: [56.328624, 44.002842], // Кремль - ПРАВИЛЬНЫЕ координаты
+            MAP_ZOOM: 13,
+            UPDATE_INTERVAL: 3000,
+            POSITION_SMOOTH: true
         };
         
-        let supabase, map, playerMarker, playerPosition = null;
-        let treasures = [], claimedTreasures = [], currentUser = null;
+        // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+        let supabase;
+        let map;
+        let playerMarker;
+        let playerPosition = null;
+        let treasures = [];
+        let claimedTreasures = [];
+        let currentUser = null;
         let treasureMarkers = {};
+        let pathPolyline = null;
+        let pathCoordinates = [];
+        let selectedTreasure = null;
+        let watchId = null;
         
+        const ACHIEVEMENTS = [
+            { id: 'first', name: 'Первая находка', icon: '🎯', requirement: 1 },
+            { id: 'explorer', name: 'Исследователь', icon: '🗺️', requirement: 5 },
+            { id: 'treasure_hunter', name: 'Охотник', icon: '💎', requirement: 10 },
+            { id: 'master', name: 'Мастер', icon: '👑', requirement: 25 },
+            { id: 'legend', name: 'Легенда', icon: '⭐', requirement: 50 },
+            { id: 'streak_7', name: 'Неделя подряд', icon: '🔥', requirement: 7, type: 'streak' },
+            { id: 'all_categories', name: 'Все категории', icon: '🌈', requirement: 'all', type: 'category' },
+            { id: 'speed', name: 'Скоростной', icon: '⚡', requirement: 5, type: 'speed' },
+            { id: 'night_owl', name: 'Ночная сова', icon: '🦉', requirement: 1, type: 'night' }
+        ];
+        
+        // ИНИЦИАЛИЗАЦИЯ
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                console.log('🚀 Запуск революционного приложения!');
+                dlog('🚀 Запуск приложения...');
                 
                 const tg = window.Telegram.WebApp;
+                if (tg.isVersionAtLeast) {
+                    tg.isVersionAtLeast('6.0');
+                }
                 tg.ready();
                 tg.expand();
+                
+                dlog('✅ Telegram инициализирован');
                 
                 supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
                 
                 const telegramUser = tg.initDataUnsafe?.user;
                 if (!telegramUser || !telegramUser.id) {
-                    throw new Error('Откройте через Telegram!');
+                    throw new Error('Откройте через Telegram бот!');
                 }
                 
+                dlog('4️⃣ Загрузка профиля...');
                 currentUser = await getOrCreateUser(telegramUser);
+                dlog('✅ Пользователь:', currentUser.username);
+                
+                dlog('5️⃣ Инициализация карты...');
                 await initMap();
+                dlog('✅ Карта создана');
+                
+                dlog('6️⃣ Загрузка точек...');
                 await loadTreasures();
+                
+                dlog('7️⃣ Загрузка находок...');
                 await loadClaimedTreasures();
+                
+                dlog('8️⃣ Обновление интерфейса...');
                 updateUI();
+                
+                dlog('9️⃣ Запуск геолокации...');
                 startTracking();
                 
+                dlog('✅ Всё готово!');
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('app').style.display = 'flex';
                 
-                console.log('🎉 Приложение готово!');
+                const finalFix = () => {
+                    try {
+                        map.invalidateSize(true);
+                        dlog('🗺️ Карта обновлена');
+                    } catch (e) {
+                        dlog('⚠️ Ошибка обновления:', e);
+                    }
+                };
+                
+                setTimeout(finalFix, 100);
+                setTimeout(finalFix, 300);
+                setTimeout(finalFix, 500);
+                setTimeout(finalFix, 1000);
+                
+                dlog('🎉 Готово!');
                 
             } catch (error) {
-                console.error('💥 Ошибка:', error);
-                alert('Ошибка: ' + error.message);
+                dlog('💥 Ошибка:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div class="spinner"></div>
+                    <div class="loading-text" style="color: #f56565;">
+                        Ошибка: ${error.message}<br><br>
+                        Откройте через Telegram бот!
+                    </div>
+                `;
             }
         });
         
         async function getOrCreateUser(telegramUser) {
-            let { data: user, error } = await supabase
-                .from('users')
-                .select('*')
-                .eq('telegram_id', telegramUser.id)
-                .single();
-            
-            if (error && error.code === 'PGRST116') {
-                const { data: newUser, error: createError } = await supabase
+            try {
+                let { data: user, error } = await supabase
                     .from('users')
-                    .insert([{
-                        telegram_id: telegramUser.id,
-                        username: telegramUser.username || `user${telegramUser.id}`,
-                        first_name: telegramUser.first_name,
-                        score: 0
-                    }])
-                    .select()
+                    .select('*')
+                    .eq('telegram_id', telegramUser.id)
                     .single();
                 
-                if (createError) throw createError;
-                user = newUser;
+                if (error && error.code === 'PGRST116') {
+                    const { data: newUser, error: createError } = await supabase
+                        .from('users')
+                        .insert([{
+                            telegram_id: telegramUser.id,
+                            username: telegramUser.username || `user${telegramUser.id}`,
+                            first_name: telegramUser.first_name,
+                            score: 0
+                        }])
+                        .select()
+                        .single();
+                    
+                    if (createError) throw createError;
+                    user = newUser;
+                }
+                
+                return user;
+            } catch (error) {
+                dlog('Ошибка загрузки пользователя:', error);
+                throw error;
             }
-            
-            return user;
         }
         
         async function initMap() {
@@ -918,86 +1375,200 @@
             
             const playerIcon = L.divIcon({
                 className: 'player-marker',
-                iconSize: [40, 40],
-                iconAnchor: [20, 20]
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
             });
             
             playerMarker = L.marker(CONFIG.MAP_CENTER, { icon: playerIcon }).addTo(map);
             
-            setTimeout(() => map.invalidateSize(true), 100);
+            pathPolyline = L.polyline([], {
+                color: '#4CAF50',
+                weight: 3,
+                opacity: 0.7,
+                dashArray: '10, 5'
+            }).addTo(map);
+            
+            const fixMapSize = () => {
+                try {
+                    map.invalidateSize(true);
+                    dlog('✅ Карта обновлена');
+                } catch (e) {
+                    dlog('⚠️ Ошибка обновления карты:', e);
+                }
+            };
+            
+            setTimeout(fixMapSize, 50);
+            setTimeout(fixMapSize, 100);
+            setTimeout(fixMapSize, 300);
+            setTimeout(fixMapSize, 500);
+            
+            window.addEventListener('orientationchange', () => {
+                setTimeout(fixMapSize, 100);
+                setTimeout(fixMapSize, 300);
+            });
+            
+            window.addEventListener('resize', fixMapSize);
+            
+            map.on('movestart', () => {
+                setTimeout(fixMapSize, 100);
+            });
+            
+            map.on('zoomstart', () => {
+                setTimeout(fixMapSize, 100);
+            });
         }
         
         async function loadTreasures() {
-            const { data, error } = await supabase
-                .from('treasures')
-                .select('*')
-                .eq('active', true);
-            
-            if (error) throw error;
-            
-            treasures = data || [];
-            
-            treasures.forEach(treasure => {
-                addTreasureMarker(treasure);
-            });
+            try {
+                dlog('🔍 Загрузка точек...');
+                
+                const { data, error } = await supabase
+                    .from('treasures')
+                    .select('*')
+                    .eq('active', true);
+                
+                if (error) {
+                    dlog('❌ Ошибка:', error);
+                    throw error;
+                }
+                
+                treasures = data || [];
+                
+                dlog(`✅ Загружено ${treasures.length} точек`);
+                
+                if (treasures.length === 0) {
+                    dlog('⚠️ Нет точек!');
+                    alert('Нет точек в базе!');
+                    return;
+                }
+                
+                treasures.forEach((treasure, index) => {
+                    dlog(`📍 Точка #${index + 1}: ${treasure.name}`);
+                    addTreasureMarker(treasure);
+                });
+                
+                dlog(`🗺️ Все ${treasures.length} маркеров добавлены`);
+                
+            } catch (error) {
+                dlog('💥 Ошибка загрузки:', error);
+                alert('Ошибка: ' + error.message);
+            }
         }
         
         function addTreasureMarker(treasure) {
-            if (!treasure || !treasure.lat || !treasure.lng) return;
-            
-            const isClaimed = claimedTreasures.some(c => c.treasure_id === treasure.id);
-            const rarity = treasure.rarity || 'common';
-            
-            let markerClass = 'treasure-marker';
-            if (rarity === 'legendary') markerClass += ' treasure-marker-legendary';
-            if (rarity === 'mystic') markerClass += ' treasure-marker-mystic';
-            if (isClaimed) markerClass += ' treasure-marker-claimed';
-            
-            const icon = L.divIcon({
-                className: markerClass,
-                html: treasure.icon || '💎',
-                iconSize: [60, 60],
-                iconAnchor: [30, 30]
-            });
-            
-            const marker = L.marker([treasure.lat, treasure.lng], {
-                icon,
-                riseOnHover: true
-            })
-                .addTo(map)
-                .on('click', () => {
-                    console.log('🖱️ Клик:', treasure.name);
-                    alert(`${treasure.icon} ${treasure.name}\n${treasure.points} очков`);
-                });
-            
-            treasureMarkers[treasure.id] = marker;
+            try {
+                if (!treasure || !treasure.lat || !treasure.lng) {
+                    dlog('❌ Некорректная точка:', treasure);
+                    return;
+                }
+                
+                dlog(`🧪 Создаем маркер: ${treasure.name} [${treasure.lat}, ${treasure.lng}]`);
+                
+                const isClaimed = claimedTreasures.some(c => c.treasure_id === treasure.id);
+                
+                const marker = L.marker([treasure.lat, treasure.lng], {
+                    title: treasure.name,
+                    riseOnHover: true,
+                    zIndexOffset: isClaimed ? 500 : 1000
+                })
+                    .addTo(map)
+                    .on('click', () => {
+                        dlog('🖱️ Клик:', treasure.name);
+                        showTreasureDetails(treasure);
+                    });
+                
+                marker.bindPopup(`<b>${treasure.icon || '💎'} ${treasure.name}</b>`);
+                
+                treasureMarkers[treasure.id] = marker;
+                
+                dlog(`✅ Маркер добавлен: ${treasure.name}`);
+                
+            } catch (error) {
+                dlog('❌ Ошибка маркера:', treasure, error);
+            }
         }
         
         async function loadClaimedTreasures() {
-            const { data, error } = await supabase
-                .from('claims')
-                .select('*')
-                .eq('user_id', currentUser.id);
-            
-            if (error) return;
-            claimedTreasures = data || [];
+            try {
+                const { data, error } = await supabase
+                    .from('claims')
+                    .select('*')
+                    .eq('user_id', currentUser.id);
+                
+                if (error) throw error;
+                
+                claimedTreasures = data || [];
+                
+                dlog(`Найдено ${claimedTreasures.length} точек`);
+            } catch (error) {
+                dlog('Ошибка находок:', error);
+            }
         }
         
         function startTracking() {
-            if (!navigator.geolocation) return;
+            if (!navigator.geolocation) {
+                alert('Геолокация не поддерживается');
+                return;
+            }
             
-            navigator.geolocation.watchPosition(
-                (position) => {
-                    playerPosition = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    };
-                    playerMarker.setLatLng([playerPosition.lat, playerPosition.lng]);
-                    updateDistances();
-                },
-                (error) => console.log('Геолокация:', error),
-                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            watchId = navigator.geolocation.watchPosition(
+                onPositionUpdate,
+                onPositionError,
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                }
             );
+        }
+        
+        function onPositionUpdate(position) {
+            const newPosition = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+            
+            pathCoordinates.push([newPosition.lat, newPosition.lng]);
+            pathPolyline.setLatLngs(pathCoordinates);
+            
+            if (playerPosition && CONFIG.POSITION_SMOOTH) {
+                animateMarker(playerMarker, playerPosition, newPosition, 1000);
+            } else {
+                playerMarker.setLatLng([newPosition.lat, newPosition.lng]);
+            }
+            
+            playerPosition = newPosition;
+            
+            updateDistances();
+            updateCompass();
+            
+            if (selectedTreasure) {
+                checkClaimDistance();
+            }
+        }
+        
+        function onPositionError(error) {
+            dlog('Ошибка геолокации:', error);
+        }
+        
+        function animateMarker(marker, from, to, duration) {
+            const start = Date.now();
+            
+            function frame() {
+                const now = Date.now();
+                const progress = Math.min((now - start) / duration, 1);
+                
+                const lat = from.lat + (to.lat - from.lat) * progress;
+                const lng = from.lng + (to.lng - from.lng) * progress;
+                
+                marker.setLatLng([lat, lng]);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(frame);
+                }
+            }
+            
+            requestAnimationFrame(frame);
         }
         
         function calculateDistance(lat1, lng1, lat2, lng2) {
@@ -1017,24 +1588,27 @@
         }
         
         function formatDistance(meters) {
-            if (meters < 1000) return Math.round(meters) + 'м';
-            return (meters / 1000).toFixed(1) + 'км';
+            if (meters < 1000) {
+                return Math.round(meters) + 'м';
+            } else {
+                return (meters / 1000).toFixed(1) + 'км';
+            }
         }
         
         function updateDistances() {
             if (!playerPosition) return;
             
             treasures.forEach(treasure => {
-                treasure.distance = calculateDistance(
+                const distance = calculateDistance(
                     playerPosition.lat,
                     playerPosition.lng,
                     treasure.lat,
                     treasure.lng
                 );
+                treasure.distance = distance;
             });
             
             treasures.sort((a, b) => a.distance - b.distance);
-            updateCompass();
         }
         
         function updateCompass() {
@@ -1053,15 +1627,43 @@
             document.getElementById('compass-icon').textContent = nearest.icon || '💎';
             document.getElementById('compass-name').textContent = nearest.name;
             document.getElementById('compass-distance').textContent = formatDistance(nearest.distance);
+            
+            const angle = calculateBearing(
+                playerPosition.lat,
+                playerPosition.lng,
+                nearest.lat,
+                nearest.lng
+            );
+            
+            document.getElementById('compass-arrow').style.transform = `rotate(${angle}deg)`;
+        }
+        
+        function calculateBearing(lat1, lng1, lat2, lng2) {
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δλ = (lng2 - lng1) * Math.PI / 180;
+            
+            const y = Math.sin(Δλ) * Math.cos(φ2);
+            const x = Math.cos(φ1) * Math.sin(φ2) -
+                      Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+            
+            const θ = Math.atan2(y, x);
+            const bearing = (θ * 180 / Math.PI + 360) % 360;
+            
+            return bearing;
         }
         
         function updateUI() {
-            const username = currentUser.username || currentUser.first_name || 'Охотник';
+            const username = currentUser.username || currentUser.first_name || 'Игрок';
             document.getElementById('user-name').textContent = username;
             document.getElementById('user-avatar').textContent = username[0].toUpperCase();
+            
             document.getElementById('user-score').textContent = currentUser.score;
             document.getElementById('user-found').textContent = claimedTreasures.length;
             document.getElementById('user-total').textContent = treasures.length;
+            
+            const streak = calculateStreak();
+            document.getElementById('streak-days').textContent = streak;
             
             const progress = treasures.length > 0 
                 ? Math.round((claimedTreasures.length / treasures.length) * 100)
@@ -1070,22 +1672,168 @@
             document.getElementById('progress-fill').style.width = progress + '%';
         }
         
+        function calculateStreak() {
+            if (claimedTreasures.length === 0) return 0;
+            
+            const uniqueDays = new Set(
+                claimedTreasures.map(c => new Date(c.claimed_at).toDateString())
+            );
+            
+            return uniqueDays.size;
+        }
+        
+        function showTreasureDetails(treasure) {
+            selectedTreasure = treasure;
+            
+            document.getElementById('treasure-modal-category').textContent = treasure.category || 'Общее';
+            document.getElementById('treasure-modal-name').textContent = treasure.name;
+            document.getElementById('treasure-modal-legend').textContent = treasure.legend || 'Нет описания';
+            document.getElementById('treasure-modal-points').textContent = treasure.points;
+            
+            const img = document.getElementById('treasure-modal-image');
+            if (treasure.image_url) {
+                img.src = treasure.image_url;
+                img.style.display = 'block';
+            } else {
+                img.style.display = 'none';
+            }
+            
+            if (playerPosition) {
+                const distance = calculateDistance(
+                    playerPosition.lat,
+                    playerPosition.lng,
+                    treasure.lat,
+                    treasure.lng
+                );
+                document.getElementById('treasure-modal-distance').textContent = formatDistance(distance);
+                treasure.distance = distance;
+            }
+            
+            checkClaimDistance();
+            
+            document.getElementById('treasure-modal').style.display = 'block';
+        }
+        
+        function checkClaimDistance() {
+            if (!selectedTreasure || !playerPosition) return;
+            
+            const distance = selectedTreasure.distance || calculateDistance(
+                playerPosition.lat,
+                playerPosition.lng,
+                selectedTreasure.lat,
+                selectedTreasure.lng
+            );
+            
+            const btn = document.getElementById('claim-btn');
+            const isClaimed = claimedTreasures.some(c => c.treasure_id === selectedTreasure.id);
+            
+            if (isClaimed) {
+                btn.className = 'claim-btn claim-btn-disabled';
+                btn.innerHTML = '<span>✅</span><span>Уже найдено</span>';
+            } else if (distance <= CONFIG.CLAIM_DISTANCE) {
+                btn.className = 'claim-btn claim-btn-active';
+                btn.innerHTML = '<span>🎯</span><span>Забрать точку!</span>';
+            } else {
+                btn.className = 'claim-btn claim-btn-disabled';
+                btn.innerHTML = `<span>🔒</span><span>Подойдите ближе (${Math.round(distance)}м)</span>`;
+            }
+        }
+        
+        async function claimTreasure() {
+            if (!selectedTreasure || !playerPosition) return;
+            
+            const distance = selectedTreasure.distance;
+            const isClaimed = claimedTreasures.some(c => c.treasure_id === selectedTreasure.id);
+            
+            if (isClaimed) {
+                alert('Вы уже нашли эту точку!');
+                return;
+            }
+            
+            if (distance > CONFIG.CLAIM_DISTANCE) {
+                alert(`Подойдите ближе! Осталось ${Math.round(distance - CONFIG.CLAIM_DISTANCE)}м`);
+                return;
+            }
+            
+            try {
+                const { error: claimError } = await supabase
+                    .from('claims')
+                    .insert([{
+                        user_id: currentUser.id,
+                        treasure_id: selectedTreasure.id
+                    }]);
+                
+                if (claimError) throw claimError;
+                
+                const newScore = currentUser.score + selectedTreasure.points;
+                const { error: updateError } = await supabase
+                    .from('users')
+                    .update({ score: newScore })
+                    .eq('id', currentUser.id);
+                
+                if (updateError) throw updateError;
+                
+                currentUser.score = newScore;
+                
+                claimedTreasures.push({
+                    user_id: currentUser.id,
+                    treasure_id: selectedTreasure.id,
+                    claimed_at: new Date().toISOString()
+                });
+                
+                const marker = treasureMarkers[selectedTreasure.id];
+                if (marker) {
+                    marker.setIcon(L.divIcon({
+                        className: 'treasure-marker treasure-marker-claimed',
+                        html: `<div style="font-size: 32px;">${selectedTreasure.icon || '💎'}</div>`,
+                        iconSize: [40, 40],
+                        iconAnchor: [20, 40]
+                    }));
+                }
+                
+                updateUI();
+                
+                showSuccess(selectedTreasure);
+                
+                closeModal('treasure-modal');
+                
+            } catch (error) {
+                dlog('Ошибка находки:', error);
+                alert('Ошибка: ' + error.message);
+            }
+        }
+        
+        function showSuccess(treasure) {
+            document.getElementById('success-points').textContent = treasure.points;
+            document.getElementById('success-message').textContent = 
+                `Вы нашли "${treasure.name}"!`;
+            document.getElementById('success-modal').style.display = 'block';
+            
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 100, 200]);
+            }
+        }
+        
         function showMap() {
+            closeAllModals();
             updateNavButtons('map');
         }
         
         function showList() {
-            alert('📍 Список точек - в разработке!');
+            renderList();
+            document.getElementById('list-modal').style.display = 'block';
             updateNavButtons('list');
         }
         
         function showProfile() {
-            alert('👤 Профиль - в разработке!');
+            renderProfile();
+            document.getElementById('profile-modal').style.display = 'block';
             updateNavButtons('profile');
         }
         
         function showLeaderboard() {
-            alert('🏆 Рейтинг - в разработке!');
+            renderLeaderboard();
+            document.getElementById('leaderboard-modal').style.display = 'block';
             updateNavButtons('leaderboard');
         }
         
@@ -1094,12 +1842,171 @@
                 btn.classList.remove('nav-btn-active');
             });
             
-            const buttons = { 'map': 0, 'list': 1, 'profile': 2, 'leaderboard': 3 };
+            const buttons = {
+                'map': 0,
+                'list': 1,
+                'profile': 2,
+                'leaderboard': 3
+            };
+            
             const index = buttons[active];
             if (index !== undefined) {
                 document.querySelectorAll('.nav-btn')[index].classList.add('nav-btn-active');
             }
         }
+        
+        function renderList() {
+            const container = document.getElementById('treasure-list');
+            
+            if (treasures.length === 0) {
+                container.innerHTML = '<div class="text-center">Нет точек</div>';
+                return;
+            }
+            
+            const html = treasures.map(treasure => {
+                const isClaimed = claimedTreasures.some(c => c.treasure_id === treasure.id);
+                const distance = treasure.distance ? formatDistance(treasure.distance) : '---';
+                
+                return `
+                    <div class="treasure-list-item ${isClaimed ? 'treasure-list-claimed' : ''}" 
+                         onclick="showTreasureFromList(${treasure.id})">
+                        <div class="treasure-list-icon">${treasure.icon || '💎'}</div>
+                        <div class="treasure-list-info">
+                            <div class="treasure-list-name">${treasure.name}</div>
+                            <div class="treasure-list-distance">${distance} • ${treasure.points} очков</div>
+                        </div>
+                        ${isClaimed ? '<div class="claimed-badge">✓ Найдено</div>' : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+        }
+        
+        function showTreasureFromList(treasureId) {
+            const treasure = treasures.find(t => t.id === treasureId);
+            if (treasure) {
+                closeModal('list-modal');
+                
+                map.setView([treasure.lat, treasure.lng], 16, {
+                    animate: true,
+                    duration: 0.5
+                });
+                
+                setTimeout(() => {
+                    map.invalidateSize(true);
+                    
+                    const marker = treasureMarkers[treasure.id];
+                    if (marker) {
+                        marker.setZIndexOffset(2000);
+                        setTimeout(() => {
+                            marker.setZIndexOffset(treasure.id === selectedTreasure?.id ? 1000 : 500);
+                        }, 500);
+                    }
+                    
+                    showTreasureDetails(treasure);
+                }, 600);
+            }
+        }
+        
+        function renderProfile() {
+            const username = currentUser.username || currentUser.first_name || 'Игрок';
+            
+            document.getElementById('profile-avatar').textContent = username[0].toUpperCase();
+            document.getElementById('profile-name').textContent = username;
+            document.getElementById('profile-score').textContent = currentUser.score;
+            document.getElementById('profile-found').textContent = claimedTreasures.length;
+            document.getElementById('profile-streak').textContent = calculateStreak();
+            
+            const achievementsHTML = ACHIEVEMENTS.map(achievement => {
+                const unlocked = checkAchievement(achievement);
+                return `
+                    <div class="achievement-item ${unlocked ? '' : 'achievement-locked'}">
+                        <div class="achievement-icon">${achievement.icon}</div>
+                        <div class="achievement-name">${achievement.name}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('achievements-grid').innerHTML = achievementsHTML;
+            
+            document.getElementById('profile-rank').textContent = '#? в рейтинге';
+        }
+        
+        function checkAchievement(achievement) {
+            if (achievement.type === 'streak') {
+                return calculateStreak() >= achievement.requirement;
+            }
+            return claimedTreasures.length >= achievement.requirement;
+        }
+        
+        async function renderLeaderboard() {
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .order('score', { ascending: false })
+                    .limit(20);
+                
+                if (error) throw error;
+                
+                const container = document.getElementById('leaderboard-list');
+                
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="text-center">Нет игроков</div>';
+                    return;
+                }
+                
+                const html = data.map((user, index) => {
+                    const rank = index + 1;
+                    const rankClass = rank <= 3 ? `rank-${rank}` : '';
+                    const isMe = user.id === currentUser.id;
+                    
+                    return `
+                        <div class="leaderboard-item" style="${isMe ? 'background: rgba(102, 126, 234, 0.2);' : ''}">
+                            <div class="rank-number ${rankClass}">${rank}</div>
+                            <div class="player-info">
+                                <div class="player-name">
+                                    ${user.username || user.first_name || 'Игрок'}
+                                    ${isMe ? '(Вы)' : ''}
+                                </div>
+                                <div class="player-score">
+                                    Найдено: ${user.score / 10} точек
+                                </div>
+                            </div>
+                            <div class="player-points">${user.score}</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                container.innerHTML = html;
+                
+            } catch (error) {
+                dlog('Ошибка лидерборда:', error);
+                document.getElementById('leaderboard-list').innerHTML = 
+                    '<div class="text-center">Ошибка загрузки</div>';
+            }
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            selectedTreasure = null;
+        }
+        
+        function closeAllModals() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+            selectedTreasure = null;
+        }
+        
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
     </script>
 </body>
 </html>
